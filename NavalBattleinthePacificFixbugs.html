@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>太平洋海战 · 战旗</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0e1a;color:#c8d0d8;font-family:'Courier New',monospace;touch-action:manipulation;user-select:none;-webkit-user-select:none;overflow:hidden;height:100vh;width:100vw;position:fixed;top:0;left:0}
+        #app{width:100%;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#0a0e1a 0%,#152238 100%);padding:8px;max-width:500px;margin:0 auto}
+        .top-bar{display:flex;justify-content:space-between;align-items:center;padding:4px 6px;background:rgba(0,0,0,0.5);border-radius:6px;font-size:11px;flex-shrink:0;border:1px solid #2a3a5a}
+        .top-bar .title{color:#d4c9a8;font-weight:700;font-size:13px;letter-spacing:1px}
+        .top-bar .info{display:flex;gap:10px;color:#8a9aaa}
+        .top-bar .info span{color:#e8c86a}
+        .res-bar{display:flex;gap:8px;padding:4px 6px;background:rgba(0,0,0,0.3);border-radius:6px;font-size:10px;flex-shrink:0;margin-top:4px;flex-wrap:wrap;border:1px solid #1a2a3a}
+        .res-bar .item{display:flex;align-items:center;gap:3px}
+        .res-bar .item .v{color:#e8c86a;font-weight:600;min-width:18px}
+        .map-wrap{flex:1;margin:4px 0;background:rgba(0,20,40,0.6);border-radius:8px;border:1px solid #1a2a4a;overflow:hidden;position:relative;min-height:0}
+        .map-grid{display:grid;grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(10,1fr);width:100%;height:100%;gap:1px;padding:2px}
+        .cell{background:rgba(10,30,60,0.7);border-radius:2px;position:relative;display:flex;align-items:center;justify-content:center;font-size:8px;color:#4a6a8a;transition:0.1s;cursor:pointer;min-height:0;aspect-ratio:1}
+        .cell .terrain{font-size:16px;line-height:1;opacity:0.6;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+        .cell .unit{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);border:2px solid #6a8aaa;border-radius:50%;width:70%;height:70%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#e0e8f0;z-index:2;transition:0.1s}
+        .cell .unit .icon{font-size:16px;line-height:1}
+        .cell .unit .str{font-size:6px;color:#6a9a7a}
+        .cell .unit.selected{border-color:#e8c86a;box-shadow:0 0 12px rgba(232,200,106,0.4)}
+        .cell .unit.enemy{border-color:#d45a5a}
+        .cell .unit.ally{border-color:#5a8ad4}
+        .cell .highlight-move{background:rgba(90,200,120,0.2);border:1px solid rgba(90,200,120,0.4)}
+        .cell .highlight-attack{background:rgba(200,60,60,0.25);border:1px solid rgba(200,60,60,0.5)}
+        .cell .flag{position:absolute;top:1px;left:1px;font-size:8px;z-index:3}
+        .cell .label{position:absolute;bottom:1px;right:2px;font-size:5px;color:#4a6a7a;z-index:1}
+        .cell .soldier{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(200,180,50,0.7);border-radius:50%;width:50%;height:50%;display:flex;align-items:center;justify-content:center;font-size:12px;z-index:3;border:1px solid #e8c86a;animation:pulse 1.5s ease-in-out infinite}
+        @keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.15)}}
+        .bottom{flex-shrink:0;display:flex;flex-direction:column;gap:4px;padding:4px 0}
+        .unit-info{background:rgba(0,0,0,0.5);border-radius:6px;padding:4px 8px;font-size:10px;border:1px solid #1a2a3a;min-height:28px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .unit-info .name{color:#d4c9a8;font-weight:600}
+        .unit-info .detail{color:#8a9aaa;font-size:9px}
+        .btn-row{display:flex;gap:4px;flex-wrap:wrap}
+        .btn{flex:1;min-width:44px;padding:6px 4px;border:1px solid #2a3a5a;border-radius:4px;background:#1a2a3a;color:#c8d0d8;font-size:10px;cursor:pointer;text-align:center;transition:0.1s;font-family:inherit;touch-action:manipulation}
+        .btn:active{transform:scale(0.95)}
+        .btn.primary{background:#3a5a3a;border-color:#5a8a5a;color:#e8f0d8}
+        .btn.danger{background:#5a2a2a;border-color:#8a4a4a;color:#f0d0d0}
+        .btn.success{background:#2a4a3a;border-color:#4a8a5a;color:#d0f0d8}
+        .btn.warning{background:#5a4a2a;border-color:#8a7a4a;color:#f0e8d0}
+        .btn:disabled{opacity:0.3;pointer-events:none}
+        .log{background:rgba(0,0,0,0.4);border-radius:4px;padding:2px 6px;font-size:9px;color:#6a8a9a;max-height:32px;overflow:hidden;border:1px solid #1a2a3a;flex-shrink:0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+        .modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+        .modal.show{display:flex}
+        .modal-box{background:#1a2a3a;border:2px solid #3a5a7a;border-radius:12px;padding:16px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto}
+        .modal-box h3{color:#e8c86a;font-size:16px;margin-bottom:8px;text-align:center}
+        .modal-box p{color:#b0c0d0;font-size:12px;line-height:1.5;margin-bottom:6px}
+        .modal-box .opt{display:block;width:100%;padding:10px;margin:4px 0;background:#0a1a2a;border:1px solid #2a4a5a;border-radius:6px;color:#c8d0d8;font-size:12px;text-align:left;cursor:pointer;transition:0.1s;font-family:inherit}
+        .modal-box .opt:active{background:#1a3a4a}
+        .modal-box .opt.selected{border-color:#e8c86a;background:#1a2a3a}
+        .modal-box .btn-row{display:flex;gap:8px;margin-top:12px}
+        .modal-box .btn-row .btn{flex:1}
+        .modal-box .score-detail{font-size:10px;color:#8a9aaa;padding:4px 0;border-bottom:1px solid #1a2a3a}
+        ::-webkit-scrollbar{width:3px}
+        ::-webkit-scrollbar-track{background:#0a0e1a}
+        ::-webkit-scrollbar-thumb{background:#2a4a6a;border-radius:3px}
+        @media(max-width:400px){.cell .terrain{font-size:12px}.cell .unit .icon{font-size:12px}.btn{font-size:8px;padding:4px 2px;min-width:32px}.top-bar{font-size:9px}.res-bar{font-size:8px}}
+        @media(min-height:800px){.map-wrap{flex:1.2}}
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="top-bar"><div class="title">⚓ 太平洋海战</div><div class="info">回合 <span id="turnNum">0</span> | <span id="phaseText">规划</span></div></div>
+    <div class="res-bar" id="resBar"></div>
+    <div class="map-wrap"><div class="map-grid" id="mapGrid"></div></div>
+    <div class="bottom">
+        <div class="unit-info" id="unitInfo">点击部队选择</div>
+        <div class="btn-row" id="btnRow">
+            <button class="btn" id="btnSelect">选择</button>
+            <button class="btn primary" id="btnMove">调动</button>
+            <button class="btn danger" id="btnAttack">进攻</button>
+            <button class="btn warning" id="btnAction">空袭</button>
+            <button class="btn success" id="btnEnd">结束回合</button>
+        </div>
+        <div class="log" id="log">⚓ 选择剧本开始游戏</div>
+    </div>
+</div>
+
+<div class="modal show" id="menuModal"><div class="modal-box"><h3>⚓ 太平洋海战 · 战旗</h3><p style="font-size:11px;color:#7a8a9a;text-align:center;">选择剧本与扮演方</p><div id="scriptList"></div><div id="factionSelect" style="display:none;margin-top:8px;"><p style="font-size:11px;color:#b0c0d0;">扮演方：</p><div style="display:flex;gap:8px;"><button class="btn primary" onclick="setFaction('usa')" style="flex:1;">🇺🇸 美军</button><button class="btn danger" onclick="setFaction('japan')" style="flex:1;">🇯🇵 日军</button></div></div><div id="branchSelect" style="display:none;margin-top:8px;"><p style="font-size:11px;color:#b0c0d0;">幻想分支：</p><div id="branchList"></div></div><div class="btn-row" style="margin-top:10px;"><button class="btn primary" id="startBtn" style="flex:1;" disabled>开始战斗</button></div></div></div>
+
+<div class="modal" id="resultModal"><div class="modal-box"><h3 id="resultTitle">🏆 战斗结束</h3><div id="resultContent"></div><div class="btn-row"><button class="btn" onclick="closeResult()">返回菜单</button><button class="btn primary" onclick="restartScript()">重新挑战</button></div></div></div>
+
+<div class="modal" id="encyclopediaModal"><div class="modal-box"><h3>📖 人物百科</h3><div id="encyclopediaContent" style="font-size:11px;color:#b0c0d0;line-height:1.6;max-height:60vh;overflow-y:auto;"></div><div class="btn-row"><button class="btn" onclick="closeEncyclopedia()">关闭</button></div></div></div>
+
+<script>
+// ============================================================
+// 数据定义（所有剧本）
+// ============================================================
+const SCRIPTS = {
+    pearl: { id:'pearl', name:'珍珠港', desc:'1941.12.7 日军突袭珍珠港', turns:8, map:'pearl',
+        branches: [
+            { id:'hist', name:'① 历史线', desc:'攻击方空袭命中+15%，防守方航母回合3到达' },
+            { id:'alert', name:'② 防守方提前预警', desc:'攻击方空袭命中-20%，防守方航母回合1到达' },
+            { id:'third', name:'③ 第三波空袭', desc:'额外2回合，防守方补给-50%，攻击方燃料加倍' }
+        ], special:{ type:'pearl' }
+    },
+    midway: { id:'midway', name:'中途岛', desc:'1942.6.4 太平洋战争转折点', turns:12, map:'midway',
+        branches: [
+            { id:'hist', name:'① 历史线：破译密码', desc:'防守方侦查+3，AI保守' },
+            { id:'nobreak', name:'② 美军未破译密码', desc:'无侦查优势，AI激进' },
+            { id:'alertj', name:'③ 日军提高警惕', desc:'日军分散布置，诱敌深入' },
+            { id:'nanmo', name:'④ 南云未换弹', desc:'日军第一波空袭提前，AI强攻' }
+        ], special:{ type:'midway' }
+    },
+    guadal: { id:'guadal', name:'瓜岛常规战', desc:'1942.8-1943.2 争夺机场', turns:20, map:'guadal',
+        branches: [
+            { id:'hist', name:'① 历史线', desc:'双方拉锯，地面战难度高' },
+            { id:'reinforce', name:'② 防守方增援提前', desc:'进攻方补给减半' },
+            { id:'upgrade', name:'③ 进攻方提前换装', desc:'进攻方地面战+20%' }
+        ], special:{ type:'guadal' }
+    },
+    tokyo: { id:'tokyo', name:'东京快车', desc:'1942.11 撤离行动', turns:12, map:'tokyo',
+        branches: [
+            { id:'hist', name:'① 历史线', desc:'日军速度+1，美军命中-15%' },
+            { id:'radar', name:'② 美军雷达升级', desc:'日军隐蔽失效，但初始士兵+2' },
+            { id:'rat', name:'③ 日军鼠运输', desc:'每艘搭载5人，被击沉美军得分翻倍' },
+            { id:'fog', name:'④ 大雾天气', desc:'移动-1，命中-20%，随机能见度' }
+        ], special:{ type:'tokyo' }
+    },
+    leyte: { id:'leyte', name:'莱特湾', desc:'1944.10 史上最大海战', turns:15, map:'leyte',
+        branches: [
+            { id:'hist', name:'① 历史线', desc:'日军分三路，AI执行捷号计划' },
+            { id:'detect', name:'② 美军识破诱饵', desc:'美军可集中攻击主力' },
+            { id:'kamikaze', name:'③ 日军神风提前', desc:'每回合自杀机袭击，航母能力减半' },
+            { id:'allin', name:'④ 联合舰队全员出击', desc:'日军舰队+30%，但燃料不足' }
+        ], special:{ type:'leyte' }
+    },
+    okinawa: { id:'okinawa', name:'冲绳', desc:'1945.4-6 太平洋最后一战', turns:25, map:'okinawa',
+        branches: [
+            { id:'hist', name:'① 历史线', desc:'登陆战，菊水特攻疯狂' },
+            { id:'abandon', name:'② 日军提前放弃', desc:'地面战难度-30%' },
+            { id:'mored', name:'③ 更猛烈的特攻', desc:'特攻加倍，但日军飞机耗尽' }
+        ], special:{ type:'okinawa' }
+    }
+};
+
+// ============================================================
+// 游戏状态与工具
+// ============================================================
+let G = {
+    script: null, faction: 'usa', branch: null, turn: 0, maxTurns: 0,
+    phase: 'planning', units: [], map: [], selectedId: null,
+    scores: { usa:0, japan:0 },
+    resources: { usa:{fuel:80,ammo:50,industry:30}, japan:{fuel:80,ammo:50,industry:30} },
+    log: [], gameOver: false, soldiers: [], tokyo_evacuated: 0
+};
+const $ = id => document.getElementById(id);
+const mapGrid = $('mapGrid'), resBar = $('resBar'), turnNum = $('turnNum'), phaseText = $('phaseText');
+const unitInfo = $('unitInfo'), log = $('log'), menuModal = $('menuModal'), scriptList = $('scriptList');
+const factionSelect = $('factionSelect'), branchSelect = $('branchSelect'), branchList = $('branchList');
+const startBtn = $('startBtn'), resultModal = $('resultModal'), resultTitle = $('resultTitle'), resultContent = $('resultContent');
+const btnSelect = $('btnSelect'), btnMove = $('btnMove'), btnAttack = $('btnAttack'), btnAction = $('btnAction'), btnEnd = $('btnEnd');
+
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+
+// ---------- 菜单 ----------
+function renderMenu() {
+    scriptList.innerHTML = '';
+    Object.keys(SCRIPTS).forEach(key => {
+        const s = SCRIPTS[key];
+        const div = document.createElement('div');
+        div.className = 'opt' + (G.script === key ? ' selected' : '');
+        div.textContent = `${s.name} — ${s.desc}`;
+        div.onclick = () => { G.script = key; G.branch = null; renderMenu(); };
+        scriptList.appendChild(div);
+    });
+    if (G.script) {
+        factionSelect.style.display = 'block';
+        branchSelect.style.display = 'block';
+        renderBranches();
+        startBtn.disabled = !(G.script && G.faction && G.branch);
+    } else {
+        factionSelect.style.display = 'none';
+        branchSelect.style.display = 'none';
+        startBtn.disabled = true;
+    }
+}
+function setFaction(f) { G.faction = f; renderMenu(); }
+function renderBranches() {
+    const s = SCRIPTS[G.script]; if (!s) return;
+    branchList.innerHTML = '';
+    s.branches.forEach(b => {
+        const div = document.createElement('div');
+        div.className = 'opt' + (G.branch === b.id ? ' selected' : '');
+        div.innerHTML = `<strong>${b.name}</strong><br><span style="font-size:10px;color:#7a8a9a;">${b.desc}</span>`;
+        div.onclick = () => { G.branch = b.id; renderBranches(); startBtn.disabled = false; };
+        branchList.appendChild(div);
+    });
+}
+startBtn.onclick = () => { if (!G.script || !G.faction || !G.branch) return; menuModal.classList.remove('show'); startGame(); };
+
+// ---------- 地图初始化 ----------
+function initMap(type) {
+    const grid = [];
+    for(let y=0;y<10;y++){
+        const row=[];
+        for(let x=0;x<10;x++){
+            let terrain='sea', label='';
+            if(type==='pearl'){
+                if(x>=1&&x<=4&&y>=2&&y<=5) { terrain='land'; label='珍珠港'; }
+                if(x===3&&y===1) { terrain='airport'; label='机场'; }
+                if(x===2&&y===3) { terrain='industry'; label='油库'; }
+                if(x===4&&y===2) { terrain='industry'; label='船坞'; }
+            } else if(type==='midway'){
+                if(x===5&&y===5) { terrain='airport'; label='中途岛'; }
+                if(x>=4&&x<=6&&y>=4&&y<=6) { terrain='land'; }
+            } else if(type==='guadal' || type==='tokyo'){
+                if(x>=4&&x<=6&&y>=4&&y<=6) { terrain='land'; label='瓜岛'; }
+                if(x===5&&y===4) { terrain='airport'; label='机场'; }
+            } else if(type==='leyte'){
+                if(x===6&&y===6) { terrain='land'; label='莱特湾'; }
+                if(x>=5&&x<=7&&y>=5&&y<=7) { terrain='land'; }
+            } else if(type==='okinawa'){
+                if(x>=5&&x<=6&&y>=5&&y<=6) { terrain='land'; label='冲绳'; }
+                if(x===5&&y===5||x===6&&y===5) { terrain='airport'; label='机场'; }
+                if(x===5&&y===6) { terrain='land'; label='工事'; }
+            }
+            row.push({ terrain, label, owner:null, unit:null });
+        }
+        grid.push(row);
+    }
+    return grid;
+}
+
+// ---------- 部署单位 ----------
+function deployUnits(script, faction) {
+    const units = []; let id=0;
+    const enemy = faction==='usa'?'japan':'usa';
+    const isUSA = faction==='usa';
+    if(script==='pearl'){
+        if(isUSA){
+            units.push({id:++id,faction:'usa',type:'战列舰',x:2,y:2,str:100,maxStr:100,icon:'🚢',atk:12,def:10,move:2,range:2,domain:'sea',fuel:20,ammo:10});
+            units.push({id:++id,faction:'usa',type:'战列舰',x:3,y:2,str:100,maxStr:100,icon:'🚢',atk:12,def:10,move:2,range:2,domain:'sea',fuel:20,ammo:10});
+            units.push({id:++id,faction:'usa',type:'战列舰',x:4,y:2,str:100,maxStr:100,icon:'🚢',atk:12,def:10,move:2,range:2,domain:'sea',fuel:20,ammo:10});
+            units.push({id:++id,faction:'usa',type:'巡洋舰',x:2,y:3,str:100,maxStr:100,icon:'🚤',atk:8,def:6,move:3,range:2,domain:'sea',fuel:25,ammo:15});
+            units.push({id:++id,faction:'usa',type:'驱逐舰',x:4,y:3,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10});
+            units.push({id:++id,faction:'usa',type:'航母',x:0,y:0,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0});
+            units.push({id:++id,faction:'usa',type:'航母',x:0,y:1,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0});
+            units.push({id:++id,faction:'japan',type:'航母',x:8,y:8,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0,isAI:true});
+            units.push({id:++id,faction:'japan',type:'航母',x:9,y:8,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0,isAI:true});
+            units.push({id:++id,faction:'japan',type:'巡洋舰',x:8,y:9,str:100,maxStr:100,icon:'🚤',atk:8,def:6,move:3,range:2,domain:'sea',fuel:25,ammo:15,isAI:true});
+        } else {
+            units.push({id:++id,faction:'japan',type:'航母',x:8,y:8,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0});
+            units.push({id:++id,faction:'japan',type:'航母',x:9,y:8,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0});
+            units.push({id:++id,faction:'japan',type:'巡洋舰',x:8,y:9,str:100,maxStr:100,icon:'🚤',atk:8,def:6,move:3,range:2,domain:'sea',fuel:25,ammo:15});
+            units.push({id:++id,faction:'usa',type:'战列舰',x:2,y:2,str:100,maxStr:100,icon:'🚢',atk:12,def:10,move:2,range:2,domain:'sea',fuel:20,ammo:10,isAI:true});
+            units.push({id:++id,faction:'usa',type:'战列舰',x:3,y:2,str:100,maxStr:100,icon:'🚢',atk:12,def:10,move:2,range:2,domain:'sea',fuel:20,ammo:10,isAI:true});
+            units.push({id:++id,faction:'usa',type:'航母',x:0,y:0,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0,isAI:true});
+        }
+    } else if(script==='midway'){
+        if(isUSA){
+            units.push({id:++id,faction:'usa',type:'航母',x:3,y:3,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0});
+            units.push({id:++id,faction:'usa',type:'航母',x:4,y:3,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0});
+            units.push({id:++id,faction:'usa',type:'航母',x:3,y:4,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0});
+            units.push({id:++id,faction:'usa',type:'巡洋舰',x:5,y:3,str:100,maxStr:100,icon:'🚤',atk:8,def:6,move:3,range:2,domain:'sea',fuel:25,ammo:15});
+            units.push({id:++id,faction:'japan',type:'航母',x:7,y:2,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0,isAI:true});
+            units.push({id:++id,faction:'japan',type:'航母',x:8,y:2,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0,isAI:true});
+            units.push({id:++id,faction:'japan',type:'航母',x:7,y:3,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0,isAI:true});
+            units.push({id:++id,faction:'japan',type:'航母',x:8,y:3,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0,isAI:true});
+        } else {
+            units.push({id:++id,faction:'japan',type:'航母',x:7,y:2,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0});
+            units.push({id:++id,faction:'japan',type:'航母',x:8,y:2,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0});
+            units.push({id:++id,faction:'japan',type:'航母',x:7,y:3,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0});
+            units.push({id:++id,faction:'japan',type:'航母',x:8,y:3,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0});
+            units.push({id:++id,faction:'usa',type:'航母',x:3,y:3,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0,isAI:true});
+            units.push({id:++id,faction:'usa',type:'航母',x:4,y:3,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0,isAI:true});
+            units.push({id:++id,faction:'usa',type:'航母',x:3,y:4,str:100,maxStr:100,icon:'✈️',atk:0,def:5,move:2,range:4,domain:'sea',fuel:20,ammo:0,isAI:true});
+        }
+    } else if(script==='tokyo'){
+        G.soldiers = [];
+        if(isUSA){
+            units.push({id:++id,faction:'usa',type:'驱逐舰',x:9,y:4,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10});
+            units.push({id:++id,faction:'usa',type:'驱逐舰',x:9,y:5,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10});
+            units.push({id:++id,faction:'usa',type:'驱逐舰',x:9,y:6,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10});
+            units.push({id:++id,faction:'usa',type:'巡洋舰',x:8,y:5,str:100,maxStr:100,icon:'🚤',atk:8,def:6,move:3,range:2,domain:'sea',fuel:25,ammo:15});
+            units.push({id:++id,faction:'japan',type:'驱逐舰',x:0,y:4,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10,isAI:true});
+            units.push({id:++id,faction:'japan',type:'驱逐舰',x:0,y:5,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10,isAI:true});
+            units.push({id:++id,faction:'japan',type:'驱逐舰',x:0,y:6,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10,isAI:true});
+            for(let i=0;i<3;i++){ G.soldiers.push({x:4+rand(0,2), y:4+rand(0,2), alive:true}); }
+        } else {
+            units.push({id:++id,faction:'japan',type:'驱逐舰',x:0,y:4,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10});
+            units.push({id:++id,faction:'japan',type:'驱逐舰',x:0,y:5,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10});
+            units.push({id:++id,faction:'japan',type:'驱逐舰',x:0,y:6,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10});
+            units.push({id:++id,faction:'usa',type:'驱逐舰',x:9,y:4,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10,isAI:true});
+            units.push({id:++id,faction:'usa',type:'驱逐舰',x:9,y:5,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10,isAI:true});
+            units.push({id:++id,faction:'usa',type:'驱逐舰',x:9,y:6,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10,isAI:true});
+            for(let i=0;i<3;i++){ G.soldiers.push({x:4+rand(0,2), y:4+rand(0,2), alive:true}); }
+        }
+    } else if(script==='guadal' || script==='leyte' || script==='okinawa'){
+        const side = isUSA ? 'usa' : 'japan';
+        const enemySide = isUSA ? 'japan' : 'usa';
+        const startX = isUSA ? 1 : 8, startY = isUSA ? 1 : 8;
+        units.push({id:++id,faction:side,type:'战列舰',x:startX,y:startY,str:100,maxStr:100,icon:'🚢',atk:12,def:10,move:2,range:2,domain:'sea',fuel:20,ammo:10});
+        units.push({id:++id,faction:side,type:'巡洋舰',x:startX+1,y:startY,str:100,maxStr:100,icon:'🚤',atk:8,def:6,move:3,range:2,domain:'sea',fuel:25,ammo:15});
+        units.push({id:++id,faction:side,type:'驱逐舰',x:startX,y:startY+1,str:100,maxStr:100,icon:'⚓',atk:5,def:3,move:4,range:1,domain:'sea',fuel:30,ammo:10});
+        const aiX = isUSA ? 8 : 1, aiY = isUSA ? 8 : 1;
+        units.push({id:++id,faction:enemySide,type:'战列舰',x:aiX,y:aiY,str:100,maxStr:100,icon:'🚢',atk:12,def:10,move:2,range:2,domain:'sea',fuel:20,ammo:10,isAI:true});
+        units.push({id:++id,faction:enemySide,type:'巡洋舰',x:aiX+1,y:aiY,str:100,maxStr:100,icon:'🚤',atk:8,def:6,move:3,range:2,domain:'sea',fuel:25,ammo:15,isAI:true});
+    }
+    units.forEach(u => { if(u.x>=0&&u.x<10&&u.y>=0&&u.y<10){ G.map[u.y][u.x].owner = u.faction; G.map[u.y][u.x].unit = u.id; } });
+    return units;
+}
+</script><script>
+// ============================================================
+// 第二段：完整游戏逻辑（含全部Bug修复）
+// ============================================================
+
+function startGame() {
+    const script = SCRIPTS[G.script];
+    G.maxTurns = script.turns;
+    G.turn = 0; G.phase = 'planning'; G.gameOver = false;
+    G.scores = { usa:0, japan:0 };
+    G.soldiers = []; G.tokyo_evacuated = 0;
+    G.selectedId = null; G.log = [];
+    G.map = initMap(script.map || 'pearl');
+    G.resources = { usa: { fuel:80, ammo:50, industry:30 }, japan: { fuel:80, ammo:50, industry:30 } };
+    if(G.script === 'tokyo'){ G.scores.usa = 20; }
+    G.units = deployUnits(G.script, G.faction);
+    applyBranchEffect();
+    updateUI(); addLog(`⚔️ ${script.name} 开始！扮演 ${G.faction==='usa'?'美军':'日军'}`);
+    renderMap(); renderResources(); renderTurn(); renderUnitInfo();
+}
+
+function applyBranchEffect() {
+    const b = G.branch;
+    if(b==='alert'){ G.units.forEach(u => { if(u.type==='航母' && u.faction !== G.faction){ u.x=3; u.y=0; } }); }
+    else if(b==='third'){ G.maxTurns += 2; G.units.forEach(u => { if(u.faction === G.faction && u.domain==='sea') u.fuel = Math.max(5, u.fuel-10); }); }
+    else if(b==='nanmo'){ G.units.forEach(u => { if(u.faction === 'japan' && u.type==='航母') u.fuel = Math.max(5, u.fuel-5); }); }
+    else if(b==='radar'){ G.units.forEach(u => { if(u.faction === 'usa' && u.type==='驱逐舰') u.range = 3; }); if(G.script==='tokyo'){ for(let i=0;i<2;i++) G.soldiers.push({x:4+rand(0,2),y:4+rand(0,2),alive:true}); } }
+    else if(b==='fog'){ G.units.forEach(u => { u.move = Math.max(1, u.move-1); }); }
+    else if(b==='allin'){ const side = G.faction==='usa'?'japan':'usa'; for(let i=0;i<2;i++){ G.units.push({id:G.units.length+1, faction:side, type:'驱逐舰', x:8+i, y:9, str:100, maxStr:100, icon:'⚓', atk:5, def:3, move:2, range:1, domain:'sea', fuel:10, ammo:8, isAI:true}); } }
+}
+
+function renderMap() {
+    mapGrid.innerHTML = '';
+    for(let y=0;y<10;y++){ for(let x=0;x<10;x++){
+        const cell = document.createElement('div'); cell.className = 'cell'; cell.dataset.x=x; cell.dataset.y=y;
+        const data = G.map[y][x];
+        let terrainIcon = '🌊', label='';
+        if(data.terrain==='land') terrainIcon = '🏝️';
+        else if(data.terrain==='airport') terrainIcon = '🛩️';
+        else if(data.terrain==='industry') terrainIcon = '🏭';
+        if(data.label) label = data.label;
+        cell.innerHTML = `<span class="terrain">${terrainIcon}</span>`;
+        if(label) cell.innerHTML += `<span class="label">${label}</span>`;
+        if(data.owner){ const flag = data.owner==='usa'?'🇺🇸':'🇯🇵'; cell.innerHTML += `<span class="flag">${flag}</span>`; }
+        if(G.script==='tokyo'){
+            const soldier = G.soldiers.find(s=>s.x===x&&s.y===y&&s.alive);
+            if(soldier) cell.innerHTML += `<span class="soldier">👤</span>`;
+        }
+        const unit = G.units.find(u=>u.x===x&&u.y===y&&u.str>0);
+        if(unit){
+            const isSelected = G.selectedId === unit.id;
+            const isEnemy = unit.faction !== G.faction;
+            const cls = isSelected ? 'selected' : (isEnemy ? 'enemy' : 'ally');
+            cell.innerHTML += `<div class="unit ${cls}" data-id="${unit.id}"><span class="icon">${unit.icon}</span><span class="str">${Math.round(unit.str)}%</span></div>`;
+        }
+        if(G.phase==='movement' && G.selectedId){
+            const sel = G.units.find(u=>u.id===G.selectedId);
+            if(sel){
+                const dist = Math.abs(sel.x-x)+Math.abs(sel.y-y);
+                if(dist<=sel.move && dist>0){
+                    const hasUnit = G.units.some(u=>u.x===x&&u.y===y&&u.str>0);
+                    if(!hasUnit) cell.classList.add('highlight-move');
+                }
+            }
+        }
+        if(G.phase==='combat' && G.selectedId){
+            const sel = G.units.find(u=>u.id===G.selectedId);
+            if(sel){
+                const dist = Math.abs(sel.x-x)+Math.abs(sel.y-y);
+                if(dist<=sel.range && dist>0){
+                    const target = G.units.find(u=>u.x===x&&u.y===y&&u.str>0&&u.faction!==sel.faction);
+                    if(target) cell.classList.add('highlight-attack');
+                }
+            }
+        }
+        cell.onclick = () => onCellClick(x,y);
+        mapGrid.appendChild(cell);
+    }}
+}
+
+function onCellClick(x,y) {
+    if(G.gameOver) return;
+    const unit = G.units.find(u=>u.x===x&&u.y===y&&u.str>0);
+    if(unit && unit.faction === G.faction && G.phase === 'planning'){ G.selectedId = unit.id; renderMap(); renderUnitInfo(); updateUI(); return; }
+    if(G.phase === 'movement' && G.selectedId){
+        const sel = G.units.find(u=>u.id===G.selectedId);
+        if(sel){
+            const dist = Math.abs(sel.x-x)+Math.abs(sel.y-y);
+            if(dist<=sel.move && dist>0){
+                const hasUnit = G.units.some(u=>u.x===x&&u.y===y&&u.str>0);
+                if(!hasUnit){
+                    if(G.resources[G.faction].fuel < dist){ addLog('❌ 燃料不足'); return; }
+                    G.resources[G.faction].fuel -= dist;
+                    const oldX=sel.x, oldY=sel.y;
+                    sel.x=x; sel.y=y;
+                    G.map[y][x].owner = G.faction;
+                    G.map[y][x].unit = sel.id;
+                    // 清理旧格子
+                    if(G.units.filter(u=>u.x===oldX&&u.y===oldY&&u.str>0).length===0){
+                        G.map[oldY][oldX].owner = null;
+                        G.map[oldY][oldX].unit = null;
+                    }
+                    addLog(`🚢 ${sel.icon} 移动到 (${x+1},${y+1})`);
+                    G.selectedId = null; G.phase = 'combat';
+                    renderMap(); renderResources(); renderUnitInfo(); updateUI();
+                    return;
+                }
+            }
+        }
+    }
+    if(G.phase === 'combat' && G.selectedId){
+        const sel = G.units.find(u=>u.id===G.selectedId);
+        if(sel){
+            const dist = Math.abs(sel.x-x)+Math.abs(sel.y-y);
+            if(dist<=sel.range && dist>0){
+                const target = G.units.find(u=>u.x===x&&u.y===y&&u.str>0&&u.faction!==sel.faction);
+                if(target){ executeAttack(sel.id, target.id); return; }
+            }
+        }
+    }
+    if(unit && unit.faction === G.faction){ G.selectedId = unit.id; renderMap(); renderUnitInfo(); updateUI(); }
+}
+
+function executeAttack(aId, dId) {
+    const attacker = G.units.find(u=>u.id===aId);
+    const defender = G.units.find(u=>u.id===dId);
+    if(!attacker||!defender||attacker.str<=0||defender.str<=0) return;
+    if(G.resources[G.faction].ammo < 2){ addLog('❌ 弹药不足'); return; }
+    G.resources[G.faction].ammo -= 2;
+    let atk = attacker.atk || 8, def = defender.def || 6;
+    const hit = Math.random() * 1.2 + 0.6;
+    const damage = Math.round((atk / (def + 2)) * 25 * hit);
+    const actualDamage = Math.min(damage, defender.str * 0.5);
+    defender.str = Math.max(0, defender.str - actualDamage);
+    if(defender.str > 0 && Math.random() < 0.3){
+        const retal = Math.round((def / (atk + 2)) * 15 * (Math.random()*0.8+0.4));
+        attacker.str = Math.max(0, attacker.str - Math.min(retal, attacker.str*0.3));
+        addLog(`↩️ ${defender.icon} 反击造成 ${Math.round(retal)}% 伤害`);
+    }
+    const killed = defender.str <= 0;
+    if(killed){
+        G.scores[G.faction] += getScoreValue(defender.type);
+        addLog(`💥 ${attacker.icon} 击沉 ${defender.icon}！+${getScoreValue(defender.type)}分`);
+        G.map[defender.y][defender.x].unit = null;
+        G.map[defender.y][defender.x].owner = null;
+        G.units = G.units.filter(u=>u.id!==defender.id);
+    } else {
+        addLog(`💢 ${attacker.icon} 攻击 ${defender.icon}，造成 ${Math.round(actualDamage)}% 伤害`);
+    }
+    if(killed && attacker.faction !== G.faction){ G.scores[attacker.faction] += getScoreValue(defender.type); }
+    G.selectedId = null; G.phase = 'end';
+    // 清理死亡单位（安全）
+    G.units = G.units.filter(u=>u.str>0);
+    renderMap(); renderResources(); renderUnitInfo(); updateUI();
+    checkVictory();
+}
+
+function getScoreValue(type){ const map={ '航母':50, '战列舰':30, '巡洋舰':20, '驱逐舰':10, '潜艇':8 }; return map[type] || 10; }
+
+function endTurn() {
+    if(G.gameOver) return;
+    {
+        // 资源上限
+        G.resources[G.faction].fuel = Math.min(200, G.resources[G.faction].fuel + 20);
+        G.resources[G.faction].ammo = Math.min(150, G.resources[G.faction].ammo + 15);
+        G.resources[G.faction].industry += 10;
+        // 东京快车特殊
+        if(G.script==='tokyo'){
+            const count = rand(1,3);
+            for(let i=0;i<count;i++){
+                let x=4+rand(0,2), y=4+rand(0,2);
+                // 检查该格是否有任何士兵（包括已死）
+                if(!G.soldiers.some(s=>s.x===x&&s.y===y)){
+                    G.soldiers.push({x, y, alive: true});
+                }
+            }
+            G.units.forEach(u => {
+                if(u.faction === 'japan' && u.type==='驱逐舰' && u.str>0){
+                    if(u.x>=4&&u.x<=4&&u.y>=4&&u.y<=6){
+                        const soldier = G.soldiers.find(s=>s.alive && Math.abs(s.x-u.x)<=1 && Math.abs(s.y-u.y)<=1);
+                        if(soldier){ soldier.alive = false; G.scores.japan += 50; G.tokyo_evacuated++; addLog(`🚢 日军撤离士兵！+50分 (共${G.tokyo_evacuated}人)`); }
+                    }
+                }
+            });
+            G.units.forEach(u => {
+                if(u.faction === 'usa' && u.str>0 && u.range>=2){
+                    const soldier = G.soldiers.find(s=>s.alive && Math.abs(s.x-u.x)<=2 && Math.abs(s.y-u.y)<=2);
+                    if(soldier){ soldier.alive = false; G.scores.usa += 30; G.scores.japan -= 10; addLog(`💥 美军消灭士兵！+30分，日军-10分`); }
+                }
+            });
+        }
+        // AI行动
+        aiTurn();
+        G.turn++;
+        if(G.turn >= G.maxTurns){ endGame(); return; }
+        G.phase = 'planning'; G.selectedId = null;
+        addLog(`📅 第 ${G.turn+1}/${G.maxTurns} 回合开始`);
+        renderMap(); renderResources(); renderTurn(); renderUnitInfo(); updateUI();
+        checkVictory();
+    }
+}
+
+function aiTurn() {
+    const aiUnits = G.units.filter(u => u.isAI && u.str>0);
+    aiUnits.forEach(u => {
+        // 检查弹药
+        if((G.resources[u.faction]?.ammo || 0) < 2) return;
+        let target = null, minDist = 99;
+        G.units.forEach(other => {
+            if(other.faction === u.faction || other.str<=0) return;
+            const d = Math.abs(u.x-other.x)+Math.abs(u.y-other.y);
+            if(d < minDist){ minDist=d; target=other; }
+        });
+        if(target && minDist <= u.range){
+            G.resources[u.faction].ammo -= 2;
+            const dmg = Math.round((u.atk||8) / ((target.def||6)+2) * 20 * (Math.random()*0.8+0.4));
+            target.str = Math.max(0, target.str - dmg);
+            if(target.str <= 0){
+                G.scores[u.faction] += getScoreValue(target.type);
+                G.map[target.y][target.x].unit = null;
+                G.map[target.y][target.x].owner = null;
+                G.units = G.units.filter(unit=>unit.id!==target.id);
+                addLog(`🤖 AI ${u.icon} 击沉 ${target.icon}`);
+            }
+        } else if(target && minDist <= u.move+1){
+            const dx = Math.sign(target.x - u.x), dy = Math.sign(target.y - u.y);
+            const nx = u.x + dx, ny = u.y + dy;
+            if(nx>=0&&nx<10&&ny>=0&&ny<10){
+                const hasUnit = G.units.some(unit=>unit.x===nx&&unit.y===ny&&unit.str>0);
+                if(!hasUnit){
+                    const oldX=u.x, oldY=u.y;
+                    u.x = nx; u.y = ny;
+                    G.map[ny][nx].owner = u.faction;
+                    G.map[ny][nx].unit = u.id;
+                    // 清理旧格
+                    if(G.units.filter(unit=>unit.x===oldX&&unit.y===oldY&&unit.str>0).length===0){
+                        G.map[oldY][oldX].owner = null;
+                        G.map[oldY][oldX].unit = null;
+                    }
+                }
+            }
+        }
+    });
+    G.units = G.units.filter(u=>u.str>0);
+}
+
+function checkVictory() {
+    if(G.gameOver) return true;
+    const alive = G.units.filter(u=>u.str>0);
+    const myUnits = alive.filter(u=>u.faction===G.faction);
+    const enemyUnits = alive.filter(u=>u.faction!==G.faction);
+    if(enemyUnits.length === 0 && myUnits.length > 0){ endGame(); return true; }
+    if(myUnits.length === 0){ endGame(); return true; }
+    return false;
+}
+
+function endGame() {
+    if(G.gameOver) return;
+    G.gameOver = true;
+    const us = G.scores.usa, jp = G.scores.japan;
+    const myScore = G.faction==='usa'?us:jp, enemyScore = G.faction==='usa'?jp:us;
+    let result = '', title = '';
+    if(G.script==='tokyo'){
+        if(G.tokyo_evacuated >= 8 && G.faction==='japan'){ title = '🏆 战略胜利！'; result = '日军成功撤离8人以上，取得战略胜利！'; }
+        else if(G.tokyo_evacuated >= 4 && G.faction==='japan'){ title = '🏅 战术胜利'; result = '日军撤离4-7人，取得战术胜利。'; }
+        else if(G.faction==='usa' && G.tokyo_evacuated < 4){ title = '🏆 战略胜利！'; result = '美军成功拦截，日军撤离不足4人，美军战略胜利！'; }
+        else {
+            const diff = myScore - enemyScore;
+            if(diff <= 10) { title = '⚖️ 平分秋色'; result = `双方势均力敌，分数差仅${diff}分。`; }
+            else if(myScore >= enemyScore * 2) { title = '🏆 战略胜利！'; result = `我方分数是敌方的${(myScore/enemyScore).toFixed(1)}倍，取得战略胜利！`; }
+            else if(myScore >= enemyScore * 1.5) { title = '🏅 战术胜利'; result = `我方分数领先，取得战术胜利。`; }
+            else { title = '💔 战败'; result = `敌方取得胜利，分数比 ${myScore}:${enemyScore}`; }
+        }
+    } else {
+        const diff = myScore - enemyScore;
+        if(diff <= 10) { title = '⚖️ 平分秋色'; result = `双方势均力敌，分数差仅${diff}分。`; }
+        else if(myScore >= enemyScore * 4) { title = '🏆 战略胜利！'; result = `我方分数是敌方的${(myScore/enemyScore).toFixed(1)}倍，取得战略胜利！`; }
+        else if(myScore >= enemyScore * 2) { title = '🏅 战术胜利'; result = `我方分数是敌方的${(myScore/enemyScore).toFixed(1)}倍，取得战术胜利。`; }
+        else { title = '💔 战败'; result = `敌方取得胜利，分数比 ${myScore}:${enemyScore}`; }
+    }
+    resultTitle.textContent = title;
+    resultContent.innerHTML = `
+        <div style="display:flex;justify-content:space-around;padding:8px 0;">
+            <div><strong style="color:#5a8ad4;">🇺🇸 美军</strong><br><span style="font-size:24px;color:#e8c86a;">${us}</span></div>
+            <div><strong style="color:#d45a5a;">🇯🇵 日军</strong><br><span style="font-size:24px;color:#e8c86a;">${jp}</span></div>
+        </div>
+        <p style="text-align:center;color:#b0c0d0;font-size:13px;">${result}</p>
+        <div style="margin-top:8px;font-size:10px;color:#7a8a9a;border-top:1px solid #1a2a3a;padding-top:8px;">
+            <div>回合: ${G.turn}/${G.maxTurns} | 你的阵营: ${G.faction==='usa'?'🇺🇸 美军':'🇯🇵 日军'}</div>
+            ${G.script==='tokyo'?`<div>撤离士兵: ${G.tokyo_evacuated} 人</div>`:''}
+        </div>
+    `;
+    resultModal.classList.add('show');
+}
+
+function closeResult(){ resultModal.classList.remove('show'); menuModal.classList.add('show'); renderMenu(); }
+function restartScript(){ resultModal.classList.remove('show'); startGame(); }
+
+// ---------- UI更新 ----------
+function updateUI(){ renderTurn(); renderResources(); renderUnitInfo(); renderControls(); renderLog(); }
+function renderTurn(){ turnNum.textContent = G.turn+1; const phases={'planning':'规划','movement':'调动','combat':'战斗','end':'结束'}; phaseText.textContent = phases[G.phase] || '规划'; }
+function renderResources(){ const r = G.resources[G.faction] || {fuel:0,ammo:0,industry:0};
+    resBar.innerHTML = `<span class="item">⛽ <span class="v">${r.fuel}</span></span><span class="item">💥 <span class="v">${r.ammo}</span></span><span class="item">🏭 <span class="v">${r.industry}</span></span><span class="item">🇺🇸 ${G.scores.usa} : ${G.scores.japan} 🇯🇵</span>${G.script==='tokyo'?`<span class="item">👤 撤离: ${G.tokyo_evacuated}</span>`:''}`;
+}
+function renderUnitInfo(){
+    if(G.selectedId){ const u=G.units.find(u=>u.id===G.selectedId); if(u&&u.str>0){ const isEnemy=u.faction!==G.faction; unitInfo.innerHTML=`<span class="name">${isEnemy?'🔴':''} ${u.icon} ${u.type}</span><span class="detail">战力 ${Math.round(u.str)}% | 移动 ${u.move} | 射程 ${u.range}</span><span class="detail" style="color:${isEnemy?'#d45a5a':'#5a8ad4'};">${isEnemy?'敌方':'己方'}</span>`; return; } }
+    const alive=G.units.filter(u=>u.str>0&&u.faction===G.faction);
+    unitInfo.innerHTML=`<span class="name">${alive.length} 个己方单位</span><span class="detail">点击选择 | 回合 ${G.turn+1}/${G.maxTurns}</span>`;
+}
+function renderControls(){ const isPlanning=G.phase==='planning'; const hasSelected=G.selectedId!==null; btnSelect.disabled=!isPlanning; btnMove.disabled=!(isPlanning&&hasSelected); btnAttack.disabled=!(isPlanning&&hasSelected); btnAction.disabled=!isPlanning; btnEnd.textContent=(G.phase==='end'||G.gameOver)?'下一回合':'结束回合'; if(G.gameOver){ btnMove.disabled=btnAttack.disabled=btnSelect.disabled=btnAction.disabled=true; } }
+function renderLog(){ const last=G.log.slice(-1)[0]||'⚓ 选择部队行动'; log.textContent=last; }
+function addLog(msg){ G.log.push(`[${G.turn+1}] ${msg}`); if(G.log.length>50)G.log.shift(); renderLog(); }
+
+// ---------- 按钮事件 ----------
+btnSelect.onclick = () => { if(G.phase==='planning') addLog('👆 点击地图上的己方单位选择'); };
+btnMove.onclick = () => { if(G.phase==='planning' && G.selectedId){ G.phase='movement'; addLog('📍 点击高亮格子移动'); renderMap(); renderTurn(); renderControls(); } else { addLog('⚠️ 请先选择一个己方单位'); } };
+btnAttack.onclick = () => { if(G.phase==='planning' && G.selectedId){ G.phase='combat'; addLog('⚔️ 点击红色高亮敌方单位攻击'); renderMap(); renderTurn(); renderControls(); } else { addLog('⚠️ 请先选择一个己方单位'); } };
+btnAction.onclick = () => {
+    if(G.phase==='planning'){
+        const sel = G.units.find(u=>u.id===G.selectedId);
+        if(sel && sel.type==='航母' && G.resources[G.faction].ammo >= 5){
+            G.resources[G.faction].ammo -= 5;
+            let hitCount=0;
+            G.units.forEach(u => {
+                if(u.faction !== G.faction && u.str>0){
+                    const d = Math.abs(sel.x-u.x)+Math.abs(sel.y-u.y);
+                    if(d <= sel.range){
+                        u.str = Math.max(0, u.str - 15);
+                        if(u.str<=0){
+                            G.scores[G.faction] += getScoreValue(u.type);
+                            G.map[u.y][u.x].unit=null;
+                            G.map[u.y][u.x].owner=null;
+                            hitCount++;
+                        }
+                    }
+                }
+            });
+            G.units = G.units.filter(u=>u.str>0);
+            addLog(`✈️ 空袭！命中 ${hitCount} 个目标`);
+            renderMap(); renderResources(); renderUnitInfo(); updateUI();
+            checkVictory();
+        } else { addLog('⚠️ 请选择航母或弹药不足'); }
+    }
+};
+btnEnd.onclick = () => { if(G.gameOver){ restartScript(); return; } endTurn(); };
+
+// ---------- 百科 ----------
+function showEncyclopedia() {
+    const content = document.getElementById('encyclopediaContent');
+    content.innerHTML = `
+        <div style="padding:4px 0;border-bottom:1px solid #1a2a3a;"><strong style="color:#e8c86a;">山本五十六</strong> — 日本联合舰队司令，策划珍珠港袭击。1943年乘机被美军击落。</div>
+        <div style="padding:4px 0;border-bottom:1px solid #1a2a3a;"><strong style="color:#e8c86a;">南云忠一</strong> — 日本机动部队司令，指挥珍珠港、中途岛。因换弹命令备受争议。</div>
+        <div style="padding:4px 0;border-bottom:1px solid #1a2a3a;"><strong style="color:#e8c86a;">尼米兹</strong> — 美国太平洋舰队总司令，以稳健著称。</div>
+        <div style="padding:4px 0;border-bottom:1px solid #1a2a3a;"><strong style="color:#e8c86a;">哈尔西</strong> — 美国第三舰队司令，绰号“公牛”，勇猛激进。</div>
+        <div style="padding:4px 0;"><strong style="color:#e8c86a;">斯普鲁恩斯</strong> — 中途岛海战美军指挥官，冷静理智。</div>
+    `;
+    document.getElementById('encyclopediaModal').classList.add('show');
+}
+function closeEncyclopedia(){ document.getElementById('encyclopediaModal').classList.remove('show'); }
+
+// ---------- 初始化 ----------
+renderMenu();
+const menuBox = document.querySelector('#menuModal .modal-box');
+const encBtn = document.createElement('button');
+encBtn.className = 'btn';
+encBtn.textContent = '📖 人物百科';
+encBtn.onclick = showEncyclopedia;
+encBtn.style.marginTop = '8px';
+encBtn.style.width = '100%';
+menuBox.appendChild(encBtn);
+</script>
+</body>
+</html>

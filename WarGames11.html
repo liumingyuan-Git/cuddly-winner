@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>铁血战略 · 二战 & 一战内战</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: #0b0e14;
+            color: #c8d0d8;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            min-height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            padding:12px;
+        }
+        .app {
+            width:100%;
+            max-width:1400px;
+            background: #141a22;
+            border:1px solid #2a3340;
+            border-radius:8px;
+            padding:16px;
+            box-shadow:0 0 30px rgba(0,0,0,0.8);
+        }
+        .header { display:flex; justify-content:space-between; align-items:center; padding-bottom:10px; border-bottom:2px solid #2a3340; flex-wrap:wrap; gap:8px; }
+        .header .title { font-size:1.6rem; font-weight:700; letter-spacing:3px; color:#d4c9a8; text-shadow:0 0 10px rgba(180,150,80,0.2); }
+        .header .subtitle { font-size:0.8rem; color:#7a8a9a; letter-spacing:2px; }
+        .header .turn-info { background:#1f2833; padding:6px 16px; border-radius:4px; border:1px solid #2a3340; font-size:0.9rem; color:#b0c0d0; }
+        .header .turn-info span { color:#e8c86a; font-weight:600; }
+        .resource-bar { display:flex; flex-wrap:wrap; gap:10px 24px; background:#1a212a; border:1px solid #2a3340; border-radius:6px; padding:8px 16px; margin:10px 0 8px; }
+        .resource-item { display:flex; align-items:center; gap:6px; font-size:0.85rem; color:#b0c0d0; }
+        .resource-item .icon { font-size:1.2rem; }
+        .resource-item .value { font-weight:600; color:#e8c86a; min-width:28px; }
+        .map-wrapper { margin:8px 0; background:#0e1319; border:1px solid #2a3340; border-radius:6px; padding:10px; overflow-x:auto; }
+        .map-grid { display:grid; grid-template-columns:repeat(10, minmax(70px, 1fr)); gap:3px; aspect-ratio:10/7; min-height:420px; }
+        .cell { background:#161d26; border:1px solid #2a3340; border-radius:3px; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:0.15s; min-height:60px; font-size:0.65rem; color:#5a6a7a; cursor:default; }
+        .cell .terrain { font-size:1.4rem; line-height:1; }
+        .cell .terrain-label { position:absolute; bottom:2px; right:4px; font-size:0.5rem; opacity:0.5; color:#6a7a8a; }
+        .cell .faction-flag { position:absolute; top:2px; left:2px; font-size:0.8rem; opacity:0.9; }
+        .cell .unit { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(10,14,20,0.85); border:2px solid #6a7a8a; border-radius:4px; padding:2px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:0.55rem; font-weight:600; color:#e0e8f0; cursor:pointer; transition:0.15s; min-width:44px; z-index:2; box-shadow:0 2px 8px rgba(0,0,0,0.6); line-height:1.2; }
+        .cell .unit:hover { border-color:#b0c0d0; transform:translate(-50%, -50%) scale(1.05); }
+        .cell .unit .unit-icon { font-size:1rem; }
+        .cell .unit .unit-name { white-space:nowrap; }
+        .cell .unit .unit-strength { color:#6a9a7a; }
+        .cell .unit.selected { border-color:#e8c86a; box-shadow:0 0 15px rgba(200,180,100,0.3); }
+        .cell .unit.attacker { border-color:#d45a5a; }
+        .cell .unit.defender { border-color:#5a7ad4; }
+        .cell .resource-marker { position:absolute; top:2px; right:2px; font-size:0.7rem; background:rgba(0,0,0,0.6); padding:0 3px; border-radius:3px; }
+        .cell.attackable { cursor:pointer; border-color:#d45a5a; box-shadow:inset 0 0 15px rgba(200,60,60,0.2); }
+        .cell.attackable:hover { background:#1f2a35; }
+        .cell.moveable { cursor:pointer; border-color:#5a8a6a; box-shadow:inset 0 0 15px rgba(60,200,100,0.15); }
+        .cell.moveable:hover { background:#1a2a22; }
+        .cell.naval-move { cursor:pointer; border-color:#5a7ad4; box-shadow:inset 0 0 15px rgba(60,100,200,0.15); }
+        .cell.naval-move:hover { background:#1a2232; }
+        .cell.nuclear-target { cursor:pointer; border-color:#ffaa00; box-shadow:inset 0 0 20px rgba(255,170,0,0.3); }
+        .cell.nuclear-target:hover { background:#2a2a1a; }
+        .info-panel { background:#1a212a; border:1px solid #2a3340; border-radius:6px; padding:12px 16px; margin:8px 0; min-height:70px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px; }
+        .info-panel .detail { flex:1; }
+        .info-panel .detail .row { display:flex; flex-wrap:wrap; gap:4px 16px; font-size:0.85rem; }
+        .info-panel .detail .row .label { color:#7a8a9a; }
+        .info-panel .detail .row .value { color:#d0d8e0; font-weight:500; }
+        .info-panel .action-hint { color:#e8c86a; font-size:0.85rem; margin-top:4px; }
+        .controls { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 6px; }
+        .btn { padding:6px 14px; border:1px solid #2a3340; border-radius:4px; background:#1f2833; color:#c8d0d8; font-size:0.85rem; cursor:pointer; transition:0.15s; font-family:inherit; letter-spacing:0.5px; }
+        .btn:hover { background:#2a3542; border-color:#4a5a6a; }
+        .btn.primary { background:#4a5a3a; border-color:#6a8a5a; color:#e8f0d8; }
+        .btn.primary:hover { background:#5a6a4a; }
+        .btn.danger { background:#5a2a2a; border-color:#8a4a4a; color:#f0d0d0; }
+        .btn.danger:hover { background:#6a3a3a; }
+        .btn.success { background:#2a4a3a; border-color:#4a8a5a; color:#d0f0d8; }
+        .btn.warning { background:#5a4a2a; border-color:#8a7a4a; color:#f0e8d0; }
+        .btn:disabled { opacity:0.4; cursor:not-allowed; }
+        .btn .badge { background:#3a4a5a; padding:0 6px; border-radius:8px; font-size:0.7rem; }
+        .log { background:#0e1319; border:1px solid #2a3340; border-radius:4px; padding:8px 12px; max-height:100px; overflow-y:auto; margin-top:6px; font-size:0.8rem; color:#7a8a9a; }
+        .log .entry { padding:2px 0; border-bottom:1px solid #1a222a; }
+        .log .entry .time { color:#4a5a6a; margin-right:10px; }
+        .modal-overlay { position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:999; backdrop-filter:blur(4px); padding:16px; }
+        .modal-overlay.show { display:flex; }
+        .modal { background:#1a212a; border:2px solid #3a4a5a; border-radius:8px; padding:24px; max-width:850px; width:100%; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.9); animation:modalIn 0.2s ease; }
+        @keyframes modalIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+        .modal .close { float:right; background:none; border:none; color:#6a7a8a; font-size:1.5rem; cursor:pointer; }
+        .modal h3 { color:#e8c86a; margin-bottom:12px; letter-spacing:1px; }
+        .modal h4 { color:#b0c0d0; margin:12px 0 6px; }
+        .modal p, .modal li { color:#b0c0d0; line-height:1.6; font-size:0.9rem; }
+        .modal .btn-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+        .modal .faction-select { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+        .modal .faction-select label { background:#0e1319; padding:4px 12px; border:1px solid #2a3340; border-radius:4px; cursor:pointer; transition:0.15s; }
+        .modal .faction-select label:hover { border-color:#4a5a6a; }
+        .modal .faction-select input:checked + span { color:#e8c86a; }
+        .modal .era-select { display:flex; gap:12px; flex-wrap:wrap; margin:10px 0; }
+        .modal .era-select label { display:flex; align-items:center; gap:4px; cursor:pointer; }
+        .modal .year-select { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; }
+        .modal .year-select label { display:flex; align-items:center; gap:4px; cursor:pointer; background:#0e1319; padding:2px 10px; border:1px solid #2a3340; border-radius:4px; }
+        .modal .year-select label:hover { border-color:#4a5a6a; }
+        .modal .year-select input:checked + span { color:#e8c86a; }
+        .modal .support-select { display:flex; gap:16px; margin:12px 0; }
+        .modal .support-select label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+        @media (max-width:768px) { .app { padding:10px; } .map-grid { grid-template-columns:repeat(10, minmax(48px,1fr)); min-height:300px; gap:2px; } .cell { min-height:44px; font-size:0.5rem; } .cell .terrain { font-size:1rem; } .cell .unit { padding:1px 4px; min-width:32px; font-size:0.45rem; } .cell .unit .unit-icon { font-size:0.7rem; } .cell .unit .unit-name { display:none; } .header .title { font-size:1.2rem; } .resource-bar { gap:6px 12px; } .resource-item { font-size:0.7rem; } .btn { padding:4px 10px; font-size:0.75rem; } }
+        @media (max-width:480px) { .map-grid { grid-template-columns:repeat(10, minmax(36px,1fr)); min-height:220px; } .cell { min-height:32px; border-radius:2px; } .cell .terrain { font-size:0.8rem; } .cell .unit { min-width:24px; padding:1px 2px; } .cell .unit .unit-icon { font-size:0.6rem; } .cell .unit .unit-strength { display:none; } .controls .btn { font-size:0.65rem; padding:2px 6px; } }
+    </style>
+</head>
+<body>
+<div class="app" id="app">
+    <div class="header">
+        <div>
+            <div class="title">⚔️ 铁血战略 · 完全版</div>
+            <div class="subtitle" id="eraSubtitle">请开始游戏</div>
+        </div>
+        <div class="turn-info">
+            🗓️ 回合 <span id="turnNum">0</span> &nbsp;|&nbsp; 📌 <span id="phaseName">部署</span>
+        </div>
+    </div>
+    <div class="resource-bar" id="resourceBar"></div>
+    <div class="map-wrapper">
+        <div class="map-grid" id="mapGrid"></div>
+    </div>
+    <div class="info-panel" id="infoPanel">
+        <div class="detail">
+            <div class="row"><span class="label">状态：</span><span class="value" id="statusText">选择部队或操作</span></div>
+            <div class="action-hint" id="actionHint">点击部队选择，使用下方按钮</div>
+        </div>
+    </div>
+    <div class="controls" id="controls">
+        <button class="btn" id="btnSelect" disabled>选择</button>
+        <button class="btn" id="btnMove" disabled>调动</button>
+        <button class="btn btn-danger" id="btnAttack" disabled>进攻</button>
+        <button class="btn btn-primary" id="btnTech">🔬 科技</button>
+        <button class="btn btn-primary" id="btnProduction">🏭 生产</button>
+        <button class="btn btn-warning" id="btnDiplo">🤝 外交</button>
+        <button class="btn btn-warning" id="btnSpy">🕵️ 间谍</button>
+        <button class="btn btn-success" id="btnEndTurn">结束回合</button>
+        <button class="btn" id="btnReset" style="margin-left:auto;">🔄 新局</button>
+    </div>
+    <div class="log" id="logPanel"></div>
+</div>
+
+<!-- 设置弹窗 -->
+<div class="modal-overlay show" id="setupModal">
+    <div class="modal">
+        <h3>⚙️ 铁血战略 · 设置</h3>
+        <p>选择模式与剧本。</p>
+        <div class="era-select">
+            <label><input type="radio" name="mode" value="ww2" checked> 二战</label>
+            <label><input type="radio" name="mode" value="ww1"> 一战 · 沙俄内战</label>
+        </div>
+        <div id="modeOptions">
+            <!-- 由JS动态填充 -->
+        </div>
+        <div class="faction-select" id="factionCheckboxes"></div>
+        <div id="supportOptions" style="display:none;">
+            <p>选择您支持的一方（仅限一战内战模式）：</p>
+            <div class="support-select">
+                <label><input type="radio" name="support" value="white"> 🏴 白军（沙俄）</label>
+                <label><input type="radio" name="support" value="red"> 🚩 红军（苏俄）</label>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="btn primary" id="startGameBtn">🚀 开始战争</button>
+        </div>
+        <div style="margin-top:12px;background:#0e1319;padding:10px;border-radius:4px;font-size:0.8rem;color:#7a8a9a;">
+            <strong style="color:#b0c0d0;">说明：</strong> 二战模式分欧洲/亚洲战场，常规玩法。一战模式为1916-1918沙俄内战，支持一方并派遣远征军。
+        </div>
+    </div>
+</div>
+
+<!-- 战斗弹窗 -->
+<div class="modal-overlay" id="battleModal">
+    <div class="modal">
+        <button class="close" onclick="closeBattleModal()">&times;</button>
+        <h3 id="battleTitle">⚡ 战斗报告</h3>
+        <div id="battleContent"></div>
+        <div class="btn-row"><button class="btn primary" onclick="closeBattleModal()">确认</button></div>
+    </div>
+</div>
+
+<!-- 科技弹窗 -->
+<div class="modal-overlay" id="techModal">
+    <div class="modal">
+        <button class="close" onclick="closeTechModal()">&times;</button>
+        <h3>🔬 科技研发</h3>
+        <div id="techContent"></div>
+        <div class="btn-row"><button class="btn" onclick="closeTechModal()">关闭</button></div>
+    </div>
+</div>
+
+<!-- 生产弹窗 -->
+<div class="modal-overlay" id="prodModal">
+    <div class="modal">
+        <button class="close" onclick="closeProdModal()">&times;</button>
+        <h3 id="prodTitle">🏭 军事生产</h3>
+        <div id="prodContent"></div>
+        <div class="btn-row"><button class="btn" onclick="closeProdModal()">关闭</button></div>
+    </div>
+</div>
+
+<!-- 外交弹窗 -->
+<div class="modal-overlay" id="diploModal">
+    <div class="modal">
+        <button class="close" onclick="closeDiploModal()">&times;</button>
+        <h3>🤝 外交关系</h3>
+        <div id="diploContent"></div>
+        <div class="btn-row"><button class="btn" onclick="closeDiploModal()">关闭</button></div>
+    </div>
+</div>
+
+<!-- 间谍弹窗 -->
+<div class="modal-overlay" id="spyModal">
+    <div class="modal">
+        <button class="close" onclick="closeSpyModal()">&times;</button>
+        <h3>🕵️ 间谍行动</h3>
+        <div id="spyContent"></div>
+        <div class="btn-row"><button class="btn" onclick="closeSpyModal()">关闭</button></div>
+    </div>
+</div>
+
+<!-- 核打击确认弹窗 -->
+<div class="modal-overlay" id="nukeModal">
+    <div class="modal">
+        <button class="close" onclick="closeNukeModal()">&times;</button>
+        <h3>☢️ 核打击确认</h3>
+        <div id="nukeContent"></div>
+        <div class="btn-row">
+            <button class="btn danger" id="nukeConfirmBtn">💥 执行核打击</button>
+            <button class="btn" onclick="closeNukeModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// 第一部分结束，接下来是 JavaScript 数据定义
+// ============================================================
+</script><script>
+// ============================================================
+// 第二部分：核心数据定义（阵营、单位、地形、科技）
+// ============================================================
+
+const ALL_FACTIONS = {
+    // 二战国家（欧洲+亚洲）
+    usa: { id:'usa', name:'美国', short:'美', icon:'🇺🇸', color:'#3b82f6', capital:[0,0] },
+    uk: { id:'uk', name:'英国', short:'英', icon:'🇬🇧', color:'#a855f7', capital:[0,7] },
+    france: { id:'france', name:'法国', short:'法', icon:'🇫🇷', color:'#3b82f6', capital:[1,0] },
+    germany: { id:'germany', name:'德国', short:'德', icon:'🇩🇪', color:'#eab308', capital:[4,7] },
+    italy: { id:'italy', name:'意大利', short:'意', icon:'🇮🇹', color:'#22c55e', capital:[2,7] },
+    ussr: { id:'ussr', name:'苏联', short:'苏', icon:'🇷🇺', color:'#dc2626', capital:[7,0] },
+    japan: { id:'japan', name:'日本', short:'日', icon:'🇯🇵', color:'#f97316', capital:[9,7] },
+    china: { id:'china', name:'中国', short:'中', icon:'🇨🇳', color:'#ef4444', capital:[8,0] },
+    india: { id:'india', name:'印度', short:'印', icon:'🇮🇳', color:'#f59e0b', capital:[9,4] },
+    turkey: { id:'turkey', name:'土耳其', short:'土', icon:'🇹🇷', color:'#8b5cf6', capital:[4,4] },
+    iran: { id:'iran', name:'伊朗', short:'伊', icon:'🇮🇷', color:'#06b6d4', capital:[6,4] },
+    thailand: { id:'thailand', name:'泰国', short:'泰', icon:'🇹🇭', color:'#ec4899', capital:[8,5] },
+    indonesia: { id:'indonesia', name:'印尼', short:'印尼', icon:'🇮🇩', color:'#14b8a6', capital:[9,6] },
+    mongolia: { id:'mongolia', name:'蒙古', short:'蒙', icon:'🇲🇳', color:'#d97706', capital:[9,2] },
+    // 一战国家（仅用于背景，不参与内战）
+    austria: { id:'austria', name:'奥匈帝国', short:'奥', icon:'🇦🇹', color:'#f97316', capital:[3,6] },
+    ottoman: { id:'ottoman', name:'奥斯曼', short:'土', icon:'🇹🇷', color:'#8b5cf6', capital:[5,5] },
+    serbia: { id:'serbia', name:'塞尔维亚', short:'塞', icon:'🇷🇸', color:'#a855f7', capital:[6,7] },
+    bulgaria: { id:'bulgaria', name:'保加利亚', short:'保', icon:'🇧🇬', color:'#14b8a6', capital:[4,5] },
+    russia: { id:'russia', name:'俄国', short:'俄', icon:'🇷🇺', color:'#dc2626', capital:[7,2] }
+};
+
+// 单位类型（通用，包含海陆空）
+const UNIT_TYPES = {
+    '步兵师': { attack:6, defense:8, mobility:2, cost:{ industry:6, steel:4, manpower:10, oil:1 }, icon:'🔫', domain:'land' },
+    '装甲师': { attack:12, defense:10, mobility:4, cost:{ industry:16, steel:22, manpower:6, oil:6 }, icon:'⚙️', domain:'land' },
+    '机械化师': { attack:9, defense:9, mobility:3, cost:{ industry:10, steel:12, manpower:8, oil:4 }, icon:'🚚', domain:'land' },
+    '炮兵师': { attack:14, defense:4, mobility:1, cost:{ industry:12, steel:18, manpower:6, oil:2 }, icon:'💥', domain:'land' },
+    '反坦克师': { attack:10, defense:6, mobility:2, cost:{ industry:10, steel:14, manpower:6, oil:2 }, icon:'🔺', domain:'land' },
+    '战列舰': { attack:16, defense:14, mobility:2, cost:{ industry:25, steel:40, manpower:8, oil:10 }, icon:'🚢', domain:'sea' },
+    '航母': { attack:10, defense:8, mobility:3, cost:{ industry:28, steel:30, manpower:6, oil:12 }, icon:'✈️', domain:'sea' },
+    '驱逐舰': { attack:8, defense:6, mobility:4, cost:{ industry:12, steel:16, manpower:4, oil:6 }, icon:'🛳️', domain:'sea' },
+    '战斗机': { attack:10, defense:8, mobility:6, cost:{ industry:10, steel:6, manpower:2, oil:4 }, icon:'🛩️', domain:'air' },
+    '轰炸机': { attack:14, defense:4, mobility:5, cost:{ industry:14, steel:10, manpower:2, oil:6 }, icon:'💣', domain:'air' },
+    '俯冲轰炸机': { attack:12, defense:4, mobility:5, cost:{ industry:12, steel:8, manpower:2, oil:5 }, icon:'⚡', domain:'air' }
+};
+
+// 科技树（含核武）
+const TECH_TREE = [
+    { id:'inf_atk', name:'步兵进攻', cost:12, effect:(f)=>{ f.bonus.inf_atk=(f.bonus.inf_atk||0)+2; } },
+    { id:'inf_def', name:'步兵防御', cost:12, effect:(f)=>{ f.bonus.inf_def=(f.bonus.inf_def||0)+2; } },
+    { id:'arm_atk', name:'装甲突击', cost:18, effect:(f)=>{ f.bonus.arm_atk=(f.bonus.arm_atk||0)+3; } },
+    { id:'arm_def', name:'装甲防护', cost:18, effect:(f)=>{ f.bonus.arm_def=(f.bonus.arm_def||0)+3; } },
+    { id:'art_atk', name:'炮火增强', cost:15, effect:(f)=>{ f.bonus.art_atk=(f.bonus.art_atk||0)+4; } },
+    { id:'industry', name:'工业扩张', cost:22, effect:(f)=>{ f.bonus.ind_prod=(f.bonus.ind_prod||0)+12; } },
+    { id:'logistics', name:'后勤改革', cost:20, effect:(f)=>{ f.bonus.logistics=(f.bonus.logistics||0)+0.2; } },
+    { id:'morale', name:'士气振奋', cost:16, effect:(f)=>{ f.bonus.morale=(f.bonus.morale||0)+10; } },
+    { id:'nuclear', name:'核裂变研究', cost:50, effect:(f)=>{ f.bonus.nuclear = true; f.hasNuclear = true; }, era:'ww2' }
+];
+
+// 地形
+const TERRAIN = [
+    { id:'plain', icon:'⬜', def:0, label:'平原', domain:'land' },
+    { id:'hill', icon:'⛰️', def:0.15, label:'丘陵', domain:'land' },
+    { id:'city', icon:'🏙️', def:0.25, label:'城市', domain:'land' },
+    { id:'forest', icon:'🌲', def:0.2, label:'森林', domain:'land' },
+    { id:'port', icon:'⚓', def:0.1, res:'oil', domain:'land' },
+    { id:'industrial', icon:'🏭', def:0.1, res:'industry', domain:'land' },
+    { id:'sea', icon:'🌊', def:0, label:'海洋', domain:'sea' }
+];
+
+const MAP_W = 10, MAP_H = 8;
+
+// ============================================================
+// 游戏状态对象
+// ============================================================
+let G = {
+    mode: 'ww2',
+    ww2_theme: 'europe',
+    year: 1939,
+    factions: [],
+    turn: 0,
+    phase: 'planning',
+    resources: {},
+    units: [],
+    map: [],
+    selectedUnitId: null,
+    gameOver: false,
+    winner: null,
+    log: [],
+    techResearched: {},
+    factionBonus: {},
+    productionQueue: {},
+    unitIdCounter: 0,
+    aiTurn: false,
+    victoryCondition: null,
+    factionData: {},
+    unitData: UNIT_TYPES,
+    diplomacy: {},
+    nuclearPowers: new Set(),
+    nukeReady: {},
+    // 一战内战专用
+    supportChoice: null,
+    russianControl: 'white',
+    aidPoints: { white:0, red:0 },
+    factionSupport: {} // 每个国家支持白/红（一战仅玩家）
+};
+
+function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+// ============================================================
+// DOM 引用
+// ============================================================
+const $ = id => document.getElementById(id);
+const mapGrid = $('mapGrid');
+const resourceBar = $('resourceBar');
+const turnNum = $('turnNum');
+const phaseName = $('phaseName');
+const statusText = $('statusText');
+const actionHint = $('actionHint');
+const logPanel = $('logPanel');
+const setupModal = $('setupModal');
+const factionCheckboxes = $('factionCheckboxes');
+const modeOptions = $('modeOptions');
+const supportOptions = $('supportOptions');
+const startGameBtn = $('startGameBtn');
+const battleModal = $('battleModal');
+const battleTitle = $('battleTitle');
+const battleContent = $('battleContent');
+const techModal = $('techModal');
+const techContent = $('techContent');
+const prodModal = $('prodModal');
+const prodTitle = $('prodTitle');
+const prodContent = $('prodContent');
+const diploModal = $('diploModal');
+const diploContent = $('diploContent');
+const spyModal = $('spyModal');
+const spyContent = $('spyContent');
+const nukeModal = $('nukeModal');
+const nukeContent = $('nukeContent');
+const nukeConfirmBtn = $('nukeConfirmBtn');
+const btnSelect = $('btnSelect');
+const btnMove = $('btnMove');
+const btnAttack = $('btnAttack');
+const btnTech = $('btnTech');
+const btnProduction = $('btnProduction');
+const btnDiplo = $('btnDiplo');
+const btnSpy = $('btnSpy');
+const btnEndTurn = $('btnEndTurn');
+const btnReset = $('btnReset');
+const eraSubtitle = $('eraSubtitle');
+
+// 第二部分结束，接下来是初始化与游戏启动
+</script><script>
+// ============================================================
+// 第三部分：设置界面初始化与游戏启动
+// ============================================================
+
+function initSetup() {
+    document.querySelector('input[name="mode"][value="ww2"]').checked = true;
+    updateModeOptions('ww2');
+    document.querySelectorAll('input[name="mode"]').forEach(el => {
+        el.addEventListener('change', function() {
+            if (this.checked) {
+                const mode = this.value;
+                updateModeOptions(mode);
+                supportOptions.style.display = (mode === 'ww1') ? 'block' : 'none';
+            }
+        });
+    });
+    supportOptions.style.display = 'none';
+    setupModal.classList.add('show');
+}
+
+function updateModeOptions(mode) {
+    if (mode === 'ww2') {
+        modeOptions.innerHTML = `
+            <div style="margin:6px 0;">
+                <label><input type="radio" name="ww2_theme" value="europe" checked> 欧洲战场</label>
+                <label><input type="radio" name="ww2_theme" value="asia"> 亚洲战场</label>
+            </div>
+            <div class="year-select" id="ww2_years"></div>
+        `;
+        const years = [1939,1940,1941,1942,1943,1944,1945];
+        const yearDiv = document.getElementById('ww2_years');
+        yearDiv.innerHTML = years.map(y => `<label><input type="radio" name="ww2_year" value="${y}" ${y===1939?'checked':''}> <span>${y}</span></label>`).join('');
+        document.getElementById('factionCheckboxes').style.display = 'block';
+        updateFactionList('ww2', document.querySelector('input[name="ww2_theme"]:checked').value);
+        document.querySelectorAll('input[name="ww2_theme"]').forEach(el => {
+            el.addEventListener('change', function() {
+                if (this.checked) updateFactionList('ww2', this.value);
+            });
+        });
+        document.getElementById('supportOptions').style.display = 'none';
+    } else {
+        // 一战模式：沙俄内战，不显示国家选择
+        modeOptions.innerHTML = `
+            <div style="margin:6px 0; color:#b0c0d0;">📅 沙俄内战 · 1916-1918</div>
+            <div class="year-select" id="ww1_years"></div>
+        `;
+        const years = [1916,1917,1918];
+        const yearDiv = document.getElementById('ww1_years');
+        yearDiv.innerHTML = years.map(y => `<label><input type="radio" name="ww1_year" value="${y}" ${y===1916?'checked':''}> <span>${y}</span></label>`).join('');
+        document.getElementById('factionCheckboxes').style.display = 'none';
+        document.getElementById('supportOptions').style.display = 'block';
+    }
+}
+
+function updateFactionList(mode, theme) {
+    if (mode === 'ww1') {
+        factionCheckboxes.innerHTML = '';
+        return;
+    }
+    let availableIds = [];
+    if (theme === 'europe') {
+        availableIds = ['usa','uk','france','germany','italy','ussr','turkey','iran','india','china','japan','thailand','indonesia','mongolia'];
+    } else {
+        availableIds = ['usa','uk','ussr','china','japan','india','thailand','indonesia','mongolia','france','iran','turkey'];
+    }
+    const frag = document.createDocumentFragment();
+    availableIds.forEach(id => {
+        const f = ALL_FACTIONS[id];
+        if (!f) return;
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" value="${id}" checked> <span>${f.icon} ${f.name}</span>`;
+        frag.appendChild(label);
+    });
+    factionCheckboxes.innerHTML = '';
+    factionCheckboxes.appendChild(frag);
+}
+
+startGameBtn.addEventListener('click', ()=>{
+    const mode = document.querySelector('input[name="mode"]:checked').value;
+    let year;
+    if (mode === 'ww2') {
+        const theme = document.querySelector('input[name="ww2_theme"]:checked').value;
+        year = parseInt(document.querySelector('input[name="ww2_year"]:checked').value);
+        G.ww2_theme = theme;
+    } else {
+        year = parseInt(document.querySelector('input[name="ww1_year"]:checked').value);
+        const support = document.querySelector('input[name="support"]:checked');
+        if (!support) { alert('请选择支持白军或红军'); return; }
+        G.supportChoice = support.value;
+    }
+    // 二战需要选择国家，一战不需要
+    if (mode === 'ww2') {
+        const selected = Array.from(factionCheckboxes.querySelectorAll('input:checked')).map(c=>c.value);
+        if(selected.length<2){ alert('至少选择2个阵营'); return; }
+        G.factions = selected;
+    } else {
+        // 一战只有玩家自己
+        G.factions = ['player'];
+    }
+    G.mode = mode;
+    G.year = year;
+    setupModal.classList.remove('show');
+    startGame();
+});
+
+function startGame() {
+    if (G.mode === 'ww2') {
+        initWW2();
+    } else {
+        initWW1();
+    }
+}
+
+// ============================================================
+// 二战初始化（完整版）
+// ============================================================
+function initWW2() {
+    // 构建阵营数据
+    G.factionData = {};
+    G.factions.forEach(fid => {
+        if (ALL_FACTIONS[fid]) G.factionData[fid] = { ...ALL_FACTIONS[fid] };
+    });
+
+    // 初始化地图
+    G.map = [];
+    for(let y=0; y<MAP_H; y++){
+        const row = [];
+        for(let x=0; x<MAP_W; x++){
+            let terrain = 0, res=[];
+            if((x===2&&y===1)||(x===7&&y===1)||(x===2&&y===6)||(x===7&&y===6)) terrain=5, res=['industry'];
+            else if((x===1&&y===3)||(x===8&&y===3)) terrain=4, res=['oil'];
+            else if((x===5&&y===4)||(x===3&&y===2)||(x===6&&y===7)) terrain=2;
+            else if((x===4&&y===0)||(x===5&&y===7)) terrain=3;
+            else if((x===0&&y===0)||(x===9&&y===7)) terrain=1;
+            else if((x===2&&y===4)||(x===7&&y===4)||(x===4&&y===8)||(x===5&&y===0)) terrain=6;
+            else terrain=0;
+            row.push({ terrain, owner:null, resources:res });
+        }
+        G.map.push(row);
+    }
+
+    // 资源、外交、科技等
+    G.resources = {};
+    G.factionBonus = {};
+    G.techResearched = {};
+    G.productionQueue = {};
+    G.diplomacy = {};
+    G.nuclearPowers = new Set();
+    G.nukeReady = {};
+    G.factions.forEach(fid => {
+        const base = { industry:25, oil:15, steel:25, manpower:30, tech:10 };
+        G.resources[fid] = { ...base };
+        G.factionBonus[fid] = {};
+        G.techResearched[fid] = new Set();
+        G.productionQueue[fid] = [];
+        G.nukeReady[fid] = false;
+        G.diplomacy[fid] = {};
+        G.factions.forEach(other => {
+            if (other !== fid) G.diplomacy[fid][other] = 50;
+        });
+    });
+
+    // 部署部队
+    G.units = [];
+    G.unitIdCounter = 0;
+    const posPool = [];
+    for(let y=0; y<MAP_H; y++) for(let x=0; x<MAP_W; x++) {
+        const terrain = TERRAIN[G.map[y][x].terrain];
+        if (terrain.domain === 'land' || terrain.domain === 'sea') posPool.push({x,y});
+    }
+    for(let i=posPool.length-1; i>0; i--){ let j=rand(0,i); [posPool[i],posPool[j]]=[posPool[j],posPool[i]]; }
+    let idx=0;
+    G.factions.forEach(fid => {
+        const f = G.factionData[fid];
+        const count = 2 + rand(0,1);
+        const typeKeys = Object.keys(UNIT_TYPES);
+        for(let i=0; i<count; i++){
+            const pos = posPool[idx++ % posPool.length];
+            let type = typeKeys[i % typeKeys.length];
+            const terrain = TERRAIN[G.map[pos.y][pos.x].terrain];
+            if (terrain.domain === 'sea') {
+                const navyTypes = typeKeys.filter(k => UNIT_TYPES[k].domain === 'sea');
+                if (navyTypes.length) type = navyTypes[i % navyTypes.length];
+                else type = '驱逐舰';
+            } else {
+                const landTypes = typeKeys.filter(k => UNIT_TYPES[k].domain === 'land');
+                if (landTypes.length) type = landTypes[i % landTypes.length];
+                else type = '步兵师';
+            }
+            const def = UNIT_TYPES[type];
+            const unit = {
+                id: ++G.unitIdCounter,
+                faction: fid,
+                type: type,
+                x: pos.x, y: pos.y,
+                strength: rand(75,100),
+                maxStrength: 100,
+                name: `${f.short}${i+1}${type.replace('师','')}`,
+                experience: 0,
+                domain: def.domain || 'land'
+            };
+            G.units.push(unit);
+            G.map[pos.y][pos.x].owner = fid;
+        }
+        // 首都卫戍
+        const cap = f.capital;
+        if(cap){
+            const hasUnit = G.units.some(u => u.x===cap[0] && u.y===cap[1] && u.faction===fid);
+            if(!hasUnit){
+                const def = UNIT_TYPES['步兵师'];
+                const unit = {
+                    id: ++G.unitIdCounter,
+                    faction: fid,
+                    type: '步兵师',
+                    x: cap[0], y: cap[1],
+                    strength: 90,
+                    maxStrength: 100,
+                    name: `${f.short}卫戍师`,
+                    experience: 0,
+                    domain: 'land'
+                };
+                G.units.push(unit);
+                G.map[cap[1]][cap[0]].owner = fid;
+            }
+        }
+    });
+
+    G.turn = 0;
+    G.phase = 'planning';
+    G.gameOver = false;
+    G.winner = null;
+    G.selectedUnitId = null;
+    G.log = [];
+    G.victoryCondition = null;
+
+    // 关闭所有弹窗
+    ['battleModal','techModal','prodModal','diploModal','spyModal','nukeModal'].forEach(id => $(id).classList.remove('show'));
+
+    updateUI();
+    addLog(`⚔️ 二战 ${G.year} 年爆发！`);
+    updateInfo('点击部队选择，使用下方按钮。');
+}
+
+// 第三部分结束，接下来是一战初始化和UI函数
+</script><script>
+// ============================================================
+// 第四部分：一战（沙俄内战）初始化 + UI 渲染函数
+// ============================================================
+
+function initWW1() {
+    // 重置地图
+    G.map = [];
+    for(let y=0; y<MAP_H; y++){
+        const row = [];
+        for(let x=0; x<MAP_W; x++){
+            let terrain = 0, res=[];
+            if ((x===2&&y===1)||(x===7&&y===1)||(x===2&&y===6)||(x===7&&y===6)) terrain=5, res=['industry'];
+            else if ((x===1&&y===3)||(x===8&&y===3)) terrain=4, res=['oil'];
+            else if ((x===5&&y===4)||(x===3&&y===2)||(x===6&&y===7)) terrain=2;
+            else if ((x===4&&y===0)||(x===5&&y===7)) terrain=3;
+            else if ((x===0&&y===0)||(x===9&&y===7)) terrain=1;
+            else if ((x===2&&y===4)||(x===7&&y===4)||(x===4&&y===8)||(x===5&&y===0)) terrain=6;
+            else terrain=0;
+            row.push({ terrain, owner:null, resources:res });
+        }
+        G.map.push(row);
+    }
+
+    // 白军和红军控制区（俄国领土）
+    const russianCoords = [
+        [5,0],[5,1],[6,1],[7,0],[7,1],[8,0],[8,1],[9,0],[9,1],
+        [5,2],[6,2],[7,2],[8,2],[5,3],[6,3],[7,3],[8,3]
+    ];
+    const whiteCoords = russianCoords.slice(0, 10);
+    const redCoords = russianCoords.slice(10);
+    whiteCoords.forEach(([x,y]) => { G.map[y][x].owner = 'white'; });
+    redCoords.forEach(([x,y]) => { G.map[y][x].owner = 'red'; });
+
+    // 资源：玩家 + 白军 + 红军
+    const playerFid = 'player';
+    G.factions = [playerFid];
+    G.resources = {};
+    G.resources[playerFid] = { industry:30, oil:20, steel:30, manpower:40, tech:15 };
+    G.resources['white'] = { industry:15, oil:10, steel:15, manpower:30, tech:5 };
+    G.resources['red'] = { industry:12, oil:8, steel:12, manpower:25, tech:4 };
+
+    // 外交略
+    G.diplomacy = {};
+
+    // 部署部队
+    G.units = [];
+    G.unitIdCounter = 0;
+
+    // 白军初始部队
+    const whitePos = [[5,0],[6,1],[7,0],[8,1]];
+    whitePos.forEach(([x,y]) => {
+        const unit = {
+            id: ++G.unitIdCounter,
+            faction: 'white',
+            type: '步兵师',
+            x, y,
+            strength: rand(80,100),
+            maxStrength: 100,
+            name: '白军步兵师',
+            experience: 0,
+            domain: 'land'
+        };
+        G.units.push(unit);
+    });
+    // 红军初始部队
+    const redPos = [[7,2],[8,2],[6,2]];
+    redPos.forEach(([x,y]) => {
+        const unit = {
+            id: ++G.unitIdCounter,
+            faction: 'red',
+            type: '步兵师',
+            x, y,
+            strength: rand(70,90),
+            maxStrength: 100,
+            name: '红军游击队',
+            experience: 0,
+            domain: 'land'
+        };
+        G.units.push(unit);
+    });
+
+    // 支持方
+    G.supportChoice = G.supportChoice || 'white';
+    G.aidPoints = { white:0, red:0 };
+    G.factionSupport = { player: G.supportChoice };
+
+    // 其他状态
+    G.turn = 0;
+    G.phase = 'planning';
+    G.gameOver = false;
+    G.winner = null;
+    G.selectedUnitId = null;
+    G.log = [];
+    G.victoryCondition = null;
+
+    // 清空弹窗
+    ['battleModal','techModal','prodModal','diploModal','spyModal','nukeModal'].forEach(id => $(id).classList.remove('show'));
+
+    updateUI();
+    addLog(`⚔️ 沙俄内战 ${G.year} 年爆发！`);
+    addLog(`📌 您支持 ${G.supportChoice==='white'?'白军':'红军'}，通过「生产」派遣远征军和援助物资。`);
+    updateInfo('选择部队或打开「生产」支援你的派系。');
+}
+
+// ============================================================
+// UI 渲染函数
+// ============================================================
+function updateUI() {
+    renderMap();
+    renderResources();
+    renderTurn();
+    renderControls();
+    updateInfo();
+}
+
+function renderMap() {
+    mapGrid.innerHTML = '';
+    for(let y=0; y<MAP_H; y++){
+        for(let x=0; x<MAP_W; x++){
+            const cell = G.map[y][x];
+            const div = document.createElement('div');
+            div.className = 'cell';
+            div.dataset.x = x;
+            div.dataset.y = y;
+
+            const terrain = TERRAIN[cell.terrain] || TERRAIN[0];
+            div.innerHTML = `<div class="terrain">${terrain.icon}</div>`;
+            if (terrain.label) {
+                div.innerHTML += `<div class="terrain-label">${terrain.label}</div>`;
+            }
+            if (cell.resources && cell.resources.length) {
+                const marker = document.createElement('div');
+                marker.className = 'resource-marker';
+                marker.textContent = cell.resources.includes('industry') ? '🏭' : (cell.resources.includes('oil') ? '⛽' : '');
+                div.appendChild(marker);
+            }
+            if (cell.owner) {
+                let display = cell.owner;
+                let color = '#888';
+                if (cell.owner === 'white') { display = '⚪'; color = '#e8c86a'; }
+                else if (cell.owner === 'red') { display = '🔴'; color = '#dc2626'; }
+                else {
+                    const f = G.factionData[cell.owner];
+                    if (f) { display = f.icon; color = f.color; }
+                }
+                const flagDiv = document.createElement('div');
+                flagDiv.className = 'faction-flag';
+                flagDiv.textContent = display;
+                flagDiv.style.color = color;
+                div.appendChild(flagDiv);
+            }
+
+            const unitsHere = G.units.filter(u => u.x === x && u.y === y && u.strength > 0);
+            if (unitsHere.length) {
+                const unit = unitsHere[0];
+                const f = G.factionData[unit.faction] || { icon:'⚔️', color:'#aaa' };
+                const def = UNIT_TYPES[unit.type] || UNIT_TYPES['步兵师'];
+                const unitDiv = document.createElement('div');
+                unitDiv.className = 'unit';
+                if (G.selectedUnitId === unit.id) unitDiv.classList.add('selected');
+                unitDiv.style.borderColor = (unit.faction === 'white' || unit.faction === 'red') ? '#e8c86a' : f.color;
+                unitDiv.innerHTML = `
+                    <span class="unit-icon">${def.icon}</span>
+                    <span class="unit-name">${unit.name}</span>
+                    <span class="unit-strength">${Math.round(unit.strength)}%</span>
+                `;
+                unitDiv.dataset.unitId = unit.id;
+                unitDiv.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectUnit(unit.id);
+                });
+                div.appendChild(unitDiv);
+                if (unitsHere.length > 1) {
+                    const countDiv = document.createElement('div');
+                    countDiv.style.cssText = 'position:absolute;bottom:2px;left:2px;background:rgba(0,0,0,0.6);border-radius:3px;padding:0 4px;font-size:0.5rem;color:#aaa;';
+                    countDiv.textContent = `+${unitsHere.length-1}`;
+                    div.appendChild(countDiv);
+                }
+            }
+
+            // 攻击/移动高亮
+            if (G.phase === 'combat' && G.selectedUnitId) {
+                const sel = G.units.find(u => u.id === G.selectedUnitId);
+                if (sel) {
+                    const dist = Math.abs(sel.x - x) + Math.abs(sel.y - y);
+                    if (dist <= 2 && dist > 0) {
+                        const target = G.units.find(u => u.x === x && u.y === y && u.faction !== sel.faction && u.strength > 0);
+                        if (target) {
+                            div.classList.add('attackable');
+                            div.addEventListener('click', () => {
+                                if (G.phase === 'combat') executeAttack(sel.id, target.id);
+                            });
+                        }
+                    }
+                }
+            }
+            if (G.phase === 'movement' && G.selectedUnitId) {
+                const sel = G.units.find(u => u.id === G.selectedUnitId);
+                if (sel) {
+                    const dist = Math.abs(sel.x - x) + Math.abs(sel.y - y);
+                    if (dist <= 2 && dist > 0) {
+                        const hasUnit = G.units.some(u => u.x === x && u.y === y && u.strength > 0);
+                        if (!hasUnit) {
+                            const terrain = TERRAIN[G.map[y][x].terrain];
+                            const canMove = (sel.domain === 'sea' && (terrain.domain === 'sea' || G.map[y][x].terrain === 4)) ||
+                                            (sel.domain === 'air') ||
+                                            (sel.domain === 'land' && terrain.domain === 'land');
+                            if (canMove) {
+                                div.classList.add('moveable');
+                                div.addEventListener('click', () => moveUnit(sel.id, x, y));
+                            }
+                        }
+                    }
+                }
+            }
+
+            mapGrid.appendChild(div);
+        }
+    }
+}
+
+function renderResources() {
+    const bar = resourceBar;
+    let html = '';
+    if (G.mode === 'ww2') {
+        G.factions.forEach(fid => {
+            const f = G.factionData[fid];
+            const res = G.resources[fid] || { industry:0, oil:0, steel:0, manpower:0, tech:0 };
+            const nuke = G.nuclearPowers.has(fid) ? ' ☢️' : '';
+            html += `
+                <div class="resource-item">
+                    <span class="icon">${f?f.icon:'❓'}</span>
+                    <span>${f?f.short:'?'}${nuke}</span>
+                    <span class="value">🏭${res.industry}</span>
+                    <span class="value">🛢️${res.oil}</span>
+                    <span class="value">⚙️${res.steel}</span>
+                    <span class="value">👥${res.manpower}</span>
+                    <span class="value">🔬${res.tech}</span>
+                </div>
+            `;
+        });
+    } else {
+        // 一战显示玩家资源
+        const res = G.resources['player'] || { industry:0, oil:0, steel:0, manpower:0, tech:0 };
+        html = `
+            <div class="resource-item"><span>👤 您</span>
+                <span class="value">🏭${res.industry}</span>
+                <span class="value">🛢️${res.oil}</span>
+                <span class="value">⚙️${res.steel}</span>
+                <span class="value">👥${res.manpower}</span>
+                <span class="value">🔬${res.tech}</span>
+            </div>
+            <div class="resource-item"><span>⚪白军援助: ${G.aidPoints.white}</span></div>
+            <div class="resource-item"><span>🔴红军援助: ${G.aidPoints.red}</span></div>
+        `;
+    }
+    bar.innerHTML = html;
+}
+
+function renderTurn() {
+    turnNum.textContent = G.turn;
+    const phaseMap = { 'planning':'部署', 'movement':'调动', 'combat':'战斗', 'end':'结束' };
+    phaseName.textContent = phaseMap[G.phase] || G.phase;
+}
+
+function renderControls() {
+    const isPlanning = G.phase === 'planning';
+    const hasSelected = G.selectedUnitId !== null;
+    btnSelect.disabled = !isPlanning;
+    btnMove.disabled = !(isPlanning && hasSelected);
+    btnAttack.disabled = !(isPlanning && hasSelected);
+    btnTech.disabled = !isPlanning;
+    btnProduction.disabled = !isPlanning;
+    btnDiplo.disabled = !isPlanning;
+    btnSpy.disabled = !isPlanning;
+    btnEndTurn.textContent = (G.phase === 'end' || G.gameOver) ? '下一回合' : '结束回合';
+    if (G.gameOver) {
+        btnMove.disabled = btnAttack.disabled = btnSelect.disabled = btnTech.disabled = btnProduction.disabled = btnDiplo.disabled = btnSpy.disabled = true;
+    }
+}
+
+function updateInfo(html) {
+    if (html) {
+        statusText.textContent = html;
+        return;
+    }
+    if (G.gameOver) {
+        const win = G.winner ? (G.factionData[G.winner]?.name || G.winner) : '无';
+        statusText.textContent = `🏆 战争结束！${win} 胜利！ (${G.victoryCondition||''})`;
+        actionHint.textContent = '点击「新局」重新开始。';
+        return;
+    }
+    if (G.selectedUnitId) {
+        const unit = G.units.find(u => u.id === G.selectedUnitId);
+        if (unit && unit.strength > 0) {
+            const f = G.factionData[unit.faction] || { icon:'⚔️', name:'未知' };
+            const def = UNIT_TYPES[unit.type] || UNIT_TYPES['步兵师'];
+            const bonus = G.factionBonus[unit.faction] || {};
+            let atkBonus=0, defBonus=0;
+            if (unit.type === '步兵师') { atkBonus += (bonus.inf_atk||0); defBonus += (bonus.inf_def||0); }
+            else if (unit.type === '装甲师') { atkBonus += (bonus.arm_atk||0); defBonus += (bonus.arm_def||0); }
+            else if (unit.type === '炮兵师') { atkBonus += (bonus.art_atk||0); }
+            statusText.textContent = `${f.icon} ${unit.name} | 攻击${def.attack+atkBonus} 防御${def.defense+defBonus} 完整度${Math.round(unit.strength)}%`;
+            const hints = { 'planning':'选择「调动」「进攻」「科技」「生产」「外交」「间谍」', 'movement':'点击高亮格移动', 'combat':'点击红色高亮敌对目标进攻', 'end':'点击「结束回合」' };
+            actionHint.textContent = hints[G.phase] || '';
+            return;
+        }
+    }
+    statusText.textContent = '选择部队或操作';
+    actionHint.textContent = '点击部队选择，使用下方按钮';
+}
+
+function addLog(msg) {
+    G.log.push({ time: new Date().toLocaleTimeString(), msg });
+    renderLog();
+}
+function renderLog() {
+    logPanel.innerHTML = G.log.slice(-30).map(e =>
+        `<div class="entry"><span class="time">${e.time}</span>${e.msg}</div>`
+    ).join('');
+    logPanel.scrollTop = logPanel.scrollHeight;
+}
+
+// 第四部分结束，接下来是核心操作函数
+</script><script>
+// ============================================================
+// 第五部分：选择、移动、攻击、核武器、科技、生产
+// ============================================================
+
+function selectUnit(id) {
+    if (G.gameOver) return;
+    if (!['planning','movement','combat'].includes(G.phase)) return;
+    const unit = G.units.find(u => u.id === id);
+    if (!unit || unit.strength <= 0) return;
+    G.selectedUnitId = id;
+    updateUI();
+}
+
+function moveUnit(id, tx, ty) {
+    if (G.gameOver) return;
+    const unit = G.units.find(u => u.id === id);
+    if (!unit || unit.strength <= 0) return;
+    const occupied = G.units.some(u => u.x === tx && u.y === ty && u.strength > 0);
+    if (occupied) { addLog('❌ 目标被占据'); return; }
+    const dist = Math.abs(unit.x - tx) + Math.abs(unit.y - ty);
+    if (dist > 2) { addLog('❌ 距离过远'); return; }
+    const terrain = TERRAIN[G.map[ty][tx].terrain];
+    let canMove = false;
+    if (unit.domain === 'land' && terrain.domain === 'land') canMove = true;
+    else if (unit.domain === 'sea' && (terrain.domain === 'sea' || G.map[ty][tx].terrain === 4)) canMove = true;
+    else if (unit.domain === 'air') canMove = true;
+    if (!canMove) { addLog(`❌ ${unit.domain} 无法移动到该地形`); return; }
+
+    const res = G.resources[unit.faction];
+    if (res && res.oil < 1) { addLog('❌ 石油不足'); return; }
+    if (res) res.oil -= 1;
+
+    const oldX=unit.x, oldY=unit.y;
+    unit.x = tx; unit.y = ty;
+    G.map[ty][tx].owner = unit.faction;
+    const others = G.units.filter(u => u.id !== id && u.x === oldX && u.y === oldY && u.strength > 0);
+    if (others.length === 0) G.map[oldY][oldX].owner = null;
+
+    addLog(`🚚 ${unit.name} 移动到 (${tx+1},${ty+1})`);
+    G.selectedUnitId = null;
+    G.phase = 'combat';
+    updateUI();
+    updateInfo('部队已移动，可进攻或结束回合');
+}
+
+function executeAttack(aId, dId) {
+    if (G.gameOver) return;
+    const attacker = G.units.find(u => u.id === aId);
+    const defender = G.units.find(u => u.id === dId);
+    if (!attacker || !defender || attacker.strength<=0 || defender.strength<=0) return;
+    const dist = Math.abs(attacker.x - defender.x) + Math.abs(attacker.y - defender.y);
+    if (dist > 2) return;
+
+    const aDef = UNIT_TYPES[attacker.type] || UNIT_TYPES['步兵师'];
+    const dDef = UNIT_TYPES[defender.type] || UNIT_TYPES['步兵师'];
+    const bonusA = G.factionBonus[attacker.faction] || {};
+    const bonusD = G.factionBonus[defender.faction] || {};
+
+    let atkBonus=0, defBonus=0;
+    if (attacker.type === '步兵师') { atkBonus += (bonusA.inf_atk||0); defBonus += (bonusA.inf_def||0); }
+    else if (attacker.type === '装甲师') { atkBonus += (bonusA.arm_atk||0); defBonus += (bonusA.arm_def||0); }
+    else if (attacker.type === '炮兵师') { atkBonus += (bonusA.art_atk||0); }
+    if (defender.type === '步兵师') { defBonus += (bonusD.inf_def||0); }
+    else if (defender.type === '装甲师') { defBonus += (bonusD.arm_def||0); }
+
+    let aMod=1, dMod=1;
+    if (attacker.type === '装甲师' && defender.type === '步兵师') aMod = 1.3;
+    if (attacker.type === '反坦克师' && defender.type === '装甲师') aMod = 1.4;
+    if (attacker.type === '炮兵师' && defender.type === '步兵师') aMod = 1.2;
+    if (attacker.domain === 'air' && defender.domain === 'land') aMod = 1.2;
+
+    const terrain = TERRAIN[G.map[defender.y][defender.x].terrain] || TERRAIN[0];
+    const tDef = 1 + terrain.def;
+
+    const atkPow = (aDef.attack + atkBonus) * (attacker.strength/100) * aMod * (0.85 + Math.random()*0.3);
+    const defPow = (dDef.defense + defBonus) * (defender.strength/100) * tDef * (0.85 + Math.random()*0.3);
+
+    let aLoss = Math.round(20 * (defPow / (atkPow + 1)) * (0.5 + Math.random()*0.5));
+    let dLoss = Math.round(20 * (atkPow / (defPow + 1)) * (0.5 + Math.random()*0.5));
+    aLoss = Math.min(aLoss, attacker.strength * 0.6);
+    dLoss = Math.min(dLoss, defender.strength * 0.6);
+    aLoss = Math.max(5, aLoss);
+    dLoss = Math.max(5, dLoss);
+
+    attacker.strength = Math.max(0, attacker.strength - aLoss);
+    defender.strength = Math.max(0, defender.strength - dLoss);
+
+    const aWin = defender.strength <= 0;
+    const dWin = attacker.strength <= 0;
+
+    if (attacker.strength <= 0) addLog(`💀 ${attacker.name} 被消灭`);
+    if (defender.strength <= 0) {
+        addLog(`💀 ${defender.name} 被消灭`);
+        G.map[defender.y][defender.x].owner = attacker.faction;
+        addLog(`🏴 ${attacker.name} 占领 (${defender.x+1},${defender.y+1})`);
+    }
+
+    const title = aWin ? '🏆 进攻胜利' : (dWin ? '💥 防御胜利' : '⚖️ 战平');
+    const content = `
+        <p><strong>攻击方：</strong>${attacker.name}</p>
+        <p><strong>防御方：</strong>${defender.name}</p>
+        <p><strong>攻击方损失：</strong>${Math.round(aLoss)}% (剩余 ${Math.round(attacker.strength)}%)</p>
+        <p><strong>防御方损失：</strong>${Math.round(dLoss)}% (剩余 ${Math.round(defender.strength)}%)</p>
+        <p><strong>结果：</strong>${title}</p>
+        <p style="font-size:0.8rem;color:#7a8a9a;">地形: ${terrain.label} +${Math.round(tDef*100-100)}%</p>
+    `;
+    battleTitle.textContent = title;
+    battleContent.innerHTML = content;
+    battleModal.classList.add('show');
+
+    G.units = G.units.filter(u => u.strength > 0);
+    if (checkVictory()) { G.phase='end'; updateUI(); return; }
+
+    G.selectedUnitId = null;
+    G.phase = 'end';
+    updateUI();
+    updateInfo('战斗结束，点击「结束回合」');
+}
+function closeBattleModal() { battleModal.classList.remove('show'); }
+
+// ----- 核武器 -----
+function buildNuclear(fid) {
+    const res = G.resources[fid];
+    if (!res || res.industry<40 || res.steel<30 || res.oil<20) { alert('资源不足'); return; }
+    res.industry -= 40; res.steel -= 30; res.oil -= 20;
+    G.nukeReady[fid] = true;
+    addLog(`☢️ ${G.factionData[fid].name} 制造原子弹！`);
+    closeProdModal();
+    updateUI();
+    // 进入核打击模式
+    G.phase = 'nuclear';
+    updateUI();
+    updateInfo(`☢️ 选择核打击目标（点击地图格子），或点击「结束回合」取消。`);
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach(div => {
+        const x = parseInt(div.dataset.x);
+        const y = parseInt(div.dataset.y);
+        div.addEventListener('click', function handler(e) {
+            if (G.phase !== 'nuclear') return;
+            showNukeConfirm(fid, x, y);
+            div.removeEventListener('click', handler);
+        });
+    });
+}
+function showNukeConfirm(fid, x, y) {
+    nukeContent.innerHTML = `
+        <p>☢️ 对 (${x+1}, ${y+1}) 投放原子弹？</p>
+        <p style="color:#ffaa00;">将摧毁该格及周围1格所有部队。</p>
+    `;
+    nukeModal.classList.add('show');
+    nukeConfirmBtn.onclick = function() {
+        executeNuclear(fid, x, y);
+        closeNukeModal();
+    };
+}
+function executeNuclear(fid, x, y) {
+    if (!G.nukeReady[fid]) return;
+    G.nukeReady[fid] = false;
+    const toRemove = [];
+    G.units.forEach(u => {
+        if (Math.abs(u.x - x) + Math.abs(u.y - y) <= 1) {
+            if (u.faction !== fid) { toRemove.push(u.id); addLog(`💥 ${u.name} 被核弹摧毁！`); }
+            else { u.strength = Math.max(10, u.strength * 0.3); addLog(`☢️ ${u.name} 受辐射，战力大降！`); }
+        }
+    });
+    G.units = G.units.filter(u => !toRemove.includes(u.id) && u.strength > 0);
+    addLog(`💥 核弹在 (${x+1},${y+1}) 爆炸！`);
+    G.map[y][x].terrain = 6;
+    if (checkVictory()) { G.phase='end'; updateUI(); return; }
+    G.phase = 'planning';
+    updateUI();
+    updateInfo('核打击完成。');
+}
+function closeNukeModal() { nukeModal.classList.remove('show'); }
+
+// ----- 科技 -----
+function openTechModal() {
+    if (G.gameOver) return;
+    let html = '<p>选择科技研发：</p><div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;">';
+    const availableTechs = TECH_TREE.filter(t => !t.era || t.era === 'ww2');
+    availableTechs.forEach((tech) => {
+        const can = G.factions.some(fid => {
+            const res = G.resources[fid];
+            return res && res.tech >= tech.cost && !G.techResearched[fid]?.has(tech.id);
+        });
+        html += `<button class="btn ${can?'primary':''}" onclick="researchTech('${tech.id}')" ${can?'':'disabled'}>${tech.name} (${tech.cost}🔬)</button>`;
+    });
+    html += '</div><div style="font-size:0.85rem;color:#7a8a9a;">';
+    G.factions.forEach(fid => {
+        const done = G.techResearched[fid]?.size || 0;
+        html += `${G.factionData[fid].icon} 已研发 ${done}/${availableTechs.length}<br>`;
+    });
+    html += '</div>';
+    techContent.innerHTML = html;
+    techModal.classList.add('show');
+}
+function researchTech(techId) {
+    const tech = TECH_TREE.find(t => t.id === techId);
+    if (!tech) return;
+    let target = null;
+    if (G.selectedUnitId) {
+        const u = G.units.find(u => u.id === G.selectedUnitId);
+        if (u) target = u.faction;
+    }
+    if (!target) target = G.factions[0];
+    const res = G.resources[target];
+    if (!res || res.tech < tech.cost) { alert('科技点不足'); return; }
+    if (G.techResearched[target]?.has(tech.id)) { alert('已研究'); return; }
+    res.tech -= tech.cost;
+    G.techResearched[target].add(tech.id);
+    tech.effect(G.factionBonus[target]);
+    if (tech.id === 'nuclear') {
+        G.nuclearPowers.add(target);
+        G.nukeReady[target] = true;
+        addLog(`☢️ ${G.factionData[target].name} 完成核裂变研究！`);
+        G.gameOver = true; G.winner = target; G.victoryCondition = 'nuclear';
+        addLog(`🏆 ${G.factionData[target].name} 达成核威慑胜利！`);
+        updateUI(); updateInfo(); closeTechModal(); return;
+    }
+    addLog(`🔬 ${G.factionData[target].name} 研发 ${tech.name}`);
+    const availableTechs = TECH_TREE.filter(t => !t.era || t.era === 'ww2');
+    if (G.techResearched[target].size === availableTechs.length) {
+        G.gameOver = true; G.winner = target; G.victoryCondition = 'tech';
+        addLog(`🏆 ${G.factionData[target].name} 达成科技胜利！`);
+        updateUI(); updateInfo(); closeTechModal(); return;
+    }
+    closeTechModal();
+    updateUI();
+    updateInfo();
+}
+function closeTechModal() { techModal.classList.remove('show'); }
+
+// ----- 生产（包含一战远征军）-----
+function openProdModal() {
+    if (G.gameOver) return;
+    if (G.mode === 'ww1') {
+        prodTitle.textContent = '🏭 军事生产 · 远征军';
+        let html = `
+            <p><strong>🚀 派遣远征军（支持方）：</strong></p>
+            <button class="btn warning" onclick="dispatchExpedition()">派遣远征军 (消耗20工业 10钢 5油)</button>
+            <p><strong>📦 运送物资：</strong></p>
+            <button class="btn" onclick="sendAid('ammo')">弹药 (10工业) +5援助点</button>
+            <button class="btn" onclick="sendAid('supply')">补给 (10钢 5油) +5援助点</button>
+            <hr style="border-color:#2a3340;margin:12px 0;">
+            <p><strong>当前援助点：</strong>白军 ${G.aidPoints.white}，红军 ${G.aidPoints.red}</p>
+        `;
+        prodContent.innerHTML = html;
+        prodModal.classList.add('show');
+        return;
+    }
+    // 二战生产
+    prodTitle.textContent = '🏭 军事生产';
+    let html = '<p>选择生产单位：</p><div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;">';
+    Object.keys(UNIT_TYPES).forEach(type => {
+        const def = UNIT_TYPES[type];
+        const costStr = Object.entries(def.cost).map(([k,v])=>`${k}:${v}`).join(' ');
+        html += `<button class="btn primary" onclick="produceUnit('${type}')">${def.icon} ${type} (${costStr})</button>`;
+    });
+    html += '</div><div style="font-size:0.85rem;color:#7a8a9a;">队列最多3个。</div>';
+    // 核弹制造
+    let nukeHtml = '';
+    G.factions.forEach(fid => {
+        if (G.nuclearPowers.has(fid) && G.resources[fid]) {
+            const res = G.resources[fid];
+            if (res.industry >= 40 && res.steel >= 30 && res.oil >= 20) {
+                nukeHtml += `<button class="btn btn-danger" onclick="buildNuclear('${fid}')">☢️ ${G.factionData[fid].name} 制造原子弹</button>`;
+            }
+        }
+    });
+    if (nukeHtml) html += '<div style="margin-top:10px;">'+nukeHtml+'</div>';
+    prodContent.innerHTML = html;
+    prodModal.classList.add('show');
+}
+function produceUnit(type) {
+    const def = UNIT_TYPES[type];
+    if (!def) return;
+    let target = null;
+    if (G.selectedUnitId) {
+        const u = G.units.find(u => u.id === G.selectedUnitId);
+        if (u) target = u.faction;
+    }
+    if (!target) target = G.factions[0];
+    const res = G.resources[target];
+    if (!res) return;
+    const cost = def.cost;
+    for (let k in cost) {
+        if ((res[k] || 0) < cost[k]) { alert(`资源 ${k} 不足`); return; }
+    }
+    for (let k in cost) res[k] -= cost[k];
+    if (!G.productionQueue[target]) G.productionQueue[target] = [];
+    if (G.productionQueue[target].length >= 3) { alert('队列已满'); return; }
+    G.productionQueue[target].push({ type, turnsLeft: 1 });
+    addLog(`🏭 ${G.factionData[target].name} 开始生产 ${type}`);
+    closeProdModal();
+    updateUI();
+}
+function closeProdModal() { prodModal.classList.remove('show'); }
+
+// 一战远征军和援助
+function dispatchExpedition() {
+    const res = G.resources['player'];
+    if (!res || res.industry<20 || res.steel<10 || res.oil<5) { alert('资源不足'); return; }
+    res.industry -= 20; res.steel -= 10; res.oil -= 5;
+    const side = G.supportChoice;
+    let coords = [];
+    for(let y=0; y<MAP_H; y++) for(let x=0; x<MAP_W; x++) {
+        if (G.map[y][x].owner === side) coords.push({x,y});
+    }
+    if (coords.length === 0) coords = [{x:5,y:2},{x:6,y:2},{x:7,y:2}];
+    const pos = coords[rand(0, coords.length-1)];
+    const unit = {
+        id: ++G.unitIdCounter,
+        faction: side,
+        type: '装甲师',
+        x: pos.x, y: pos.y,
+        strength: 90,
+        maxStrength: 100,
+        name: `远征军${G.unitIdCounter}`,
+        experience: 0,
+        domain: 'land'
+    };
+    G.units.push(unit);
+    G.map[pos.y][pos.x].owner = side;
+    addLog(`🚀 派遣远征军至 (${pos.x+1},${pos.y+1}) 支持 ${side==='white'?'白军':'红军'}`);
+    closeProdModal();
+    updateUI();
+}
+function sendAid(type) {
+    const res = G.resources['player'];
+    if (!res) return;
+    if (type === 'ammo' && res.industry >= 10) {
+        res.industry -= 10;
+        G.aidPoints[G.supportChoice] += 5;
+        addLog(`📦 向 ${G.supportChoice} 运送弹药，援助+5`);
+    } else if (type === 'supply' && res.steel >= 10 && res.oil >= 5) {
+        res.steel -= 10; res.oil -= 5;
+        G.aidPoints[G.supportChoice] += 5;
+        addLog(`🍞 向 ${G.supportChoice} 运送补给，援助+5`);
+    } else { alert('资源不足'); return; }
+    updateUI();
+}
+
+// 第五部分结束，接下来是外交、间谍、回合管理
+</script><script>
+// ============================================================
+// 第六部分：外交、间谍、回合管理、胜利判定、重置
+// ============================================================
+
+// ----- 外交（仅二战）-----
+function openDiploModal() {
+    if (G.gameOver || G.mode === 'ww1') {
+        if (G.mode === 'ww1') alert('一战内战无外交功能');
+        return;
+    }
+    let html = '<p>调整与各国的外交关系（关系值0-100）：</p>';
+    G.factions.forEach(fid => {
+        const f = G.factionData[fid];
+        html += `<h4>${f.icon} ${f.name}</h4><div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0;">`;
+        G.factions.forEach(other => {
+            if (other === fid) return;
+            const rel = G.diplomacy[fid][other] || 50;
+            html += `<span style="color:#b0c0d0;">${G.factionData[other].icon} 关系:${rel}</span>`;
+            html += `<button class="btn btn-sm" onclick="diploAdjust('${fid}','${other}',10)">改善+10</button>`;
+            html += `<button class="btn btn-sm" onclick="diploAdjust('${fid}','${other}',-10)">恶化-10</button>`;
+            html += `<button class="btn btn-sm" onclick="diploAdjust('${fid}','${other}',20)">大幅改善+20</button>`;
+            html += `<button class="btn btn-sm" onclick="diploAdjust('${fid}','${other}',-20)">大幅恶化-20</button>`;
+        });
+        html += '</div>';
+    });
+    diploContent.innerHTML = html;
+    diploModal.classList.add('show');
+}
+function diploAdjust(from, to, delta) {
+    let rel = G.diplomacy[from][to] || 50;
+    rel = Math.min(100, Math.max(0, rel + delta));
+    G.diplomacy[from][to] = rel;
+    addLog(`🤝 ${G.factionData[from].name} 对 ${G.factionData[to].name} 关系 ${delta>0?'改善':'恶化'} 至 ${rel}`);
+    closeDiploModal();
+    updateUI();
+}
+function closeDiploModal() { diploModal.classList.remove('show'); }
+
+// ----- 间谍（仅二战）-----
+function openSpyModal() {
+    if (G.gameOver || G.mode === 'ww1') {
+        if (G.mode === 'ww1') alert('一战内战无间谍功能');
+        return;
+    }
+    let html = '<p>选择间谍任务（消耗科技点）：</p>';
+    G.factions.forEach(fid => {
+        const f = G.factionData[fid];
+        html += `<h4>${f.icon} ${f.name}</h4><div style="display:flex;flex-wrap:wrap;gap:6px;margin:4px 0;">`;
+        G.factions.forEach(other => {
+            if (other === fid) return;
+            html += `<button class="btn btn-sm" onclick="spyMission('${fid}','${other}','steal')">偷科技 (15🔬)</button>`;
+            html += `<button class="btn btn-sm" onclick="spyMission('${fid}','${other}','sabotage')">破坏工业 (10🔬)</button>`;
+            html += `<button class="btn btn-sm" onclick="spyMission('${fid}','${other}','assassinate')">暗杀将领 (20🔬)</button>`;
+            html += `<button class="btn btn-sm" onclick="spyMission('${fid}','${other}','reveal')">情报 (5🔬)</button>`;
+        });
+        html += '</div>';
+    });
+    spyContent.innerHTML = html;
+    spyModal.classList.add('show');
+}
+function spyMission(from, to, type) {
+    const res = G.resources[from];
+    if (!res) return;
+    let cost = 0;
+    switch(type) {
+        case 'steal': cost=15; break;
+        case 'sabotage': cost=10; break;
+        case 'assassinate': cost=20; break;
+        case 'reveal': cost=5; break;
+    }
+    if (res.tech < cost) { alert('科技点不足'); return; }
+    res.tech -= cost;
+    let success = Math.random() < 0.5 + (res.tech/200);
+    let msg = '';
+    if (success) {
+        switch(type) {
+            case 'steal': {
+                const available = TECH_TREE.filter(t => !G.techResearched[from]?.has(t.id) && G.techResearched[to]?.has(t.id));
+                if (available.length) {
+                    const tech = available[rand(0, available.length-1)];
+                    G.techResearched[from].add(tech.id);
+                    tech.effect(G.factionBonus[from]);
+                    msg = `偷取科技 ${tech.name} 成功！`;
+                } else { msg = '无可偷科技'; }
+                break;
+            }
+            case 'sabotage': {
+                G.resources[to].industry = Math.max(0, G.resources[to].industry - 20);
+                msg = '破坏工业成功！';
+                break;
+            }
+            case 'assassinate': {
+                const units = G.units.filter(u => u.faction === to && u.strength > 0);
+                if (units.length) {
+                    const u = units[rand(0, units.length-1)];
+                    u.strength = Math.max(0, u.strength - 50);
+                    if (u.strength <= 0) { G.units = G.units.filter(unit => unit.id !== u.id); msg = `暗杀 ${u.name} 成功！`; }
+                    else { msg = `暗杀 ${u.name} 使其重伤！`; }
+                } else { msg = '无目标可暗杀'; }
+                break;
+            }
+            case 'reveal': {
+                const positions = G.units.filter(u => u.faction === to && u.strength > 0)
+                    .map(u => `${u.name} (${u.x+1},${u.y+1})`).join('; ');
+                msg = `情报获取：${positions}`;
+                break;
+            }
+        }
+    } else { msg = '任务失败'; }
+    addLog(`🕵️ ${G.factionData[from].name} 对 ${G.factionData[to].name} 执行 ${type}：${msg}`);
+    closeSpyModal();
+    updateUI();
+}
+function closeSpyModal() { spyModal.classList.remove('show'); }
+
+// ----- 回合管理 -----
+function endTurn() {
+    if (G.gameOver) { resetGame(); return; }
+    consumeSupplies();
+    processProduction();
+    produceResources();
+
+    // 二战经济胜利检查
+    if (G.mode === 'ww2') {
+        G.factions.forEach(fid => {
+            if (G.resources[fid].industry >= 1000) {
+                G.gameOver = true; G.winner = fid; G.victoryCondition = 'economy';
+                addLog(`🏆 ${G.factionData[fid].name} 达成经济胜利！`);
+            }
+        });
+        if (G.gameOver) { updateUI(); updateInfo(); return; }
+    }
+
+    // 一战内战胜利检查
+    if (G.mode === 'ww1') {
+        let whiteCount = 0, redCount = 0;
+        for(let y=0; y<MAP_H; y++) for(let x=0; x<MAP_W; x++) {
+            if (G.map[y][x].owner === 'white') whiteCount++;
+            if (G.map[y][x].owner === 'red') redCount++;
+        }
+        if (whiteCount === 0 && redCount > 0) {
+            G.gameOver = true;
+            G.winner = G.supportChoice === 'red' ? 'player' : null;
+            G.victoryCondition = '内战胜利';
+            addLog(`🏆 ${G.supportChoice==='red'?'红军':'白军'} 赢得内战！您获胜！`);
+        } else if (redCount === 0 && whiteCount > 0) {
+            G.gameOver = true;
+            G.winner = G.supportChoice === 'white' ? 'player' : null;
+            G.victoryCondition = '内战胜利';
+            addLog(`🏆 ${G.supportChoice==='white'?'白军':'红军'} 赢得内战！您获胜！`);
+        }
+        if (G.gameOver) { updateUI(); updateInfo(); return; }
+    }
+
+    G.turn++;
+    G.phase = 'planning';
+    G.selectedUnitId = null;
+    G.units.forEach(u => {
+        if (u.strength > 0 && u.strength < u.maxStrength) {
+            u.strength = Math.min(u.maxStrength, u.strength + rand(3,8));
+        }
+    });
+    addLog(`📅 第 ${G.turn} 回合开始。`);
+    updateUI();
+    updateInfo('新回合，请行动。');
+    checkVictory();
+    // AI回合
+    aiTurn();
+}
+
+function consumeSupplies() {
+    G.units.forEach(u => {
+        if (u.strength <= 0) return;
+        const res = G.resources[u.faction];
+        if (!res) return;
+        const def = UNIT_TYPES[u.type] || UNIT_TYPES['步兵师'];
+        const cost = def.cost || {};
+        let need = { industry:1, oil:1, steel:1 };
+        for (let k in need) {
+            need[k] += Math.round((cost[k] || 0) * 0.2);
+        }
+        const bonus = G.factionBonus[u.faction] || {};
+        const discount = bonus.logistics || 0;
+        for (let k in need) need[k] = Math.max(0, Math.round(need[k] * (1 - discount)));
+        let shortage = false;
+        for (let k in need) {
+            if ((res[k] || 0) < need[k]) shortage = true;
+        }
+        if (shortage) {
+            u.strength = Math.max(10, u.strength - rand(5,15));
+            addLog(`⚠️ ${u.name} 补给不足，战力下降！`);
+        } else {
+            for (let k in need) res[k] -= need[k];
+        }
+    });
+}
+
+function processProduction() {
+    if (G.mode === 'ww1') return; // 一战无生产队列
+    G.factions.forEach(fid => {
+        const q = G.productionQueue[fid] || [];
+        if (q.length === 0) return;
+        const item = q[0];
+        item.turnsLeft--;
+        if (item.turnsLeft <= 0) {
+            const f = G.factionData[fid];
+            const cap = f.capital;
+            let x = cap ? cap[0] : rand(0, MAP_W-1);
+            let y = cap ? cap[1] : rand(0, MAP_H-1);
+            const def = UNIT_TYPES[item.type] || UNIT_TYPES['步兵师'];
+            const domain = def.domain || 'land';
+            let found = false;
+            for (let dy=-2; dy<=2 && !found; dy++) {
+                for (let dx=-2; dx<=2 && !found; dx++) {
+                    const nx = x+dx, ny = y+dy;
+                    if (nx>=0 && nx<MAP_W && ny>=0 && ny<MAP_H) {
+                        const terrain = TERRAIN[G.map[ny][nx].terrain];
+                        let valid = false;
+                        if (domain === 'land' && terrain.domain === 'land') valid = true;
+                        else if (domain === 'sea' && (terrain.domain === 'sea' || G.map[ny][nx].terrain === 4)) valid = true;
+                        else if (domain === 'air') valid = true;
+                        if (valid && !G.units.some(u => u.x===nx && u.y===ny && u.strength>0)) {
+                            x=nx; y=ny; found=true;
+                        }
+                    }
+                }
+            }
+            if (!found) {
+                const pool = [];
+                for (let yy=0; yy<MAP_H; yy++) for (let xx=0; xx<MAP_W; xx++) {
+                    const terrain = TERRAIN[G.map[yy][xx].terrain];
+                    let valid = false;
+                    if (domain === 'land' && terrain.domain === 'land') valid = true;
+                    else if (domain === 'sea' && (terrain.domain === 'sea' || G.map[yy][xx].terrain === 4)) valid = true;
+                    else if (domain === 'air') valid = true;
+                    if (valid && !G.units.some(u => u.x===xx && u.y===yy && u.strength>0)) pool.push({x:xx,y:yy});
+                }
+                if (pool.length) { const p=pool[rand(0,pool.length-1)]; x=p.x; y=p.y; }
+            }
+            const unit = {
+                id: ++G.unitIdCounter,
+                faction: fid,
+                type: item.type,
+                x, y,
+                strength: 90,
+                maxStrength: 100,
+                name: `${f.short}新编${item.type.replace('师','')}`,
+                experience: 0,
+                domain: domain
+            };
+            G.units.push(unit);
+            G.map[y][x].owner = fid;
+            addLog(`✅ ${G.factionData[fid].name} 生产完成：${item.type}`);
+            q.shift();
+        }
+    });
+}
+
+function produceResources() {
+    if (G.mode === 'ww1') {
+        // 玩家资源自动恢复
+        const res = G.resources['player'];
+        if (res) {
+            res.industry += 5 + rand(0,3);
+            res.oil += 3 + rand(0,2);
+            res.steel += 4 + rand(0,3);
+            res.manpower += 2 + rand(0,2);
+            res.tech += 1;
+        }
+        return;
+    }
+    G.factions.forEach(fid => {
+        const res = G.resources[fid];
+        if (!res) return;
+        let baseInd = 5 + rand(0,3), baseOil = 3 + rand(0,2), baseSteel = 5 + rand(0,3), baseMan = 4 + rand(0,2), baseTech = 1 + rand(0,1);
+        const bonus = G.factionBonus[fid] || {};
+        if (bonus.ind_prod) baseInd += bonus.ind_prod;
+        let indCount=0, portCount=0;
+        for (let y=0; y<MAP_H; y++) for (let x=0; x<MAP_W; x++) {
+            const cell = G.map[y][x];
+            if (cell.owner === fid) {
+                if (cell.resources.includes('industry')) indCount++;
+                if (cell.resources.includes('oil')) portCount++;
+            }
+        }
+        baseInd += indCount * 3;
+        baseOil += portCount * 2;
+        res.industry += baseInd;
+        res.oil += baseOil;
+        res.steel += baseSteel;
+        res.manpower += baseMan;
+        res.tech += baseTech;
+    });
+}
+
+function checkVictory() {
+    const active = new Set();
+    G.units.forEach(u => { if (u.strength > 0) active.add(u.faction); });
+    if (active.size <= 1 && G.units.length > 0) {
+        const winner = active.values().next().value;
+        G.gameOver = true; G.winner = winner; G.victoryCondition = 'military';
+        addLog(`🏆 ${G.factionData[winner]?.name||winner} 取得军事胜利！`);
+        updateUI(); updateInfo(); return true;
+    }
+    if (G.units.length === 0) {
+        G.gameOver = true; G.winner = null; G.victoryCondition = 'draw';
+        addLog('⚖️ 同归于尽，平局。');
+        updateUI(); updateInfo(); return true;
+    }
+    return false;
+}
+
+// ----- AI 行动 -----
+function aiTurn() {
+    if (G.gameOver || G.mode === 'ww1') {
+        // 一战AI：白军和红军自动攻击
+        if (G.mode === 'ww1' && !G.gameOver) {
+            // 简单AI：各自寻找最近的敌方
+            ['white','red'].forEach(side => {
+                const units = G.units.filter(u => u.faction === side && u.strength > 0);
+                units.forEach(unit => {
+                    let minDist = 999, target = null;
+                    G.units.forEach(other => {
+                        if (other.faction === side || other.strength <= 0) return;
+                        const d = Math.abs(unit.x - other.x) + Math.abs(unit.y - other.y);
+                        if (d < minDist && d <= 3) { minDist = d; target = other; }
+                    });
+                    if (target) {
+                        if (minDist <= 2) {
+                            executeAttack(unit.id, target.id);
+                        } else if (minDist <= 3) {
+                            const dx = Math.sign(target.x - unit.x);
+                            const dy = Math.sign(target.y - unit.y);
+                            const nx = unit.x + dx, ny = unit.y + dy;
+                            if (nx>=0 && nx<MAP_W && ny>=0 && ny<MAP_H) {
+                                const occupied = G.units.some(u => u.x===nx && u.y===ny && u.strength>0);
+                                if (!occupied) {
+                                    const terrain = TERRAIN[G.map[ny][nx].terrain];
+                                    if (terrain.domain === 'land') moveUnit(unit.id, nx, ny);
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+        return;
+    }
+    // 二战AI
+    G.factions.forEach(fid => {
+        const units = G.units.filter(u => u.faction === fid && u.strength > 0);
+        if (units.length === 0) return;
+        units.forEach(unit => {
+            let minDist = 999, target = null;
+            G.units.forEach(other => {
+                if (other.faction === fid || other.strength <= 0) return;
+                const d = Math.abs(unit.x - other.x) + Math.abs(unit.y - other.y);
+                if (d < minDist && d <= 3) { minDist = d; target = other; }
+            });
+            if (target) {
+                if (minDist <= 2) {
+                    executeAttack(unit.id, target.id);
+                } else if (minDist <= 3) {
+                    const dx = Math.sign(target.x - unit.x);
+                    const dy = Math.sign(target.y - unit.y);
+                    const nx = unit.x + dx, ny = unit.y + dy;
+                    if (nx>=0 && nx<MAP_W && ny>=0 && ny<MAP_H) {
+                        const occupied = G.units.some(u => u.x===nx && u.y===ny && u.strength>0);
+                        if (!occupied) {
+                            const terrain = TERRAIN[G.map[ny][nx].terrain];
+                            let can = false;
+                            if (unit.domain === 'land' && terrain.domain === 'land') can = true;
+                            else if (unit.domain === 'sea' && (terrain.domain === 'sea' || G.map[ny][nx].terrain === 4)) can = true;
+                            else if (unit.domain === 'air') can = true;
+                            if (can) moveUnit(unit.id, nx, ny);
+                        }
+                    }
+                }
+            }
+        });
+    });
+    checkVictory();
+}
+
+// ----- 重置 -----
+function resetGame() {
+    if (!confirm('重新开局？')) return;
+    G.factions = [];
+    G.turn = 0;
+    G.phase = 'planning';
+    G.resources = {};
+    G.units = [];
+    G.map = [];
+    G.selectedUnitId = null;
+    G.gameOver = false;
+    G.winner = null;
+    G.log = [];
+    G.techResearched = {};
+    G.factionBonus = {};
+    G.productionQueue = {};
+    G.unitIdCounter = 0;
+    G.victoryCondition = null;
+    G.diplomacy = {};
+    G.nuclearPowers = new Set();
+    G.nukeReady = {};
+    G.aidPoints = { white:0, red:0 };
+    G.factionSupport = {};
+    ['battleModal','techModal','prodModal','diploModal','spyModal','nukeModal'].forEach(id => $(id).classList.remove('show'));
+    // 重新打开设置
+    setupModal.classList.add('show');
+    initSetup();
+}
+
+// ============================================================
+// 按钮事件绑定
+// ============================================================
+btnSelect.addEventListener('click', ()=>{ if(G.phase==='planning') updateInfo('点击地图上的部队选择。'); });
+btnMove.addEventListener('click', ()=>{
+    if (G.phase==='planning' && G.selectedUnitId) {
+        G.phase = 'movement';
+        updateUI();
+        updateInfo('点击高亮格移动。');
+    } else alert('请先选择一个部队。');
+});
+btnAttack.addEventListener('click', ()=>{
+    if (G.phase==='planning' && G.selectedUnitId) {
+        G.phase = 'combat';
+        updateUI();
+        updateInfo('点击红色高亮敌军进攻。');
+    } else alert('请先选择一个部队。');
+});
+btnTech.addEventListener('click', openTechModal);
+btnProduction.addEventListener('click', openProdModal);
+btnDiplo.addEventListener('click', openDiploModal);
+btnSpy.addEventListener('click', openSpyModal);
+btnEndTurn.addEventListener('click', endTurn);
+btnReset.addEventListener('click', resetGame);
+
+// ============================================================
+// 启动游戏
+// ============================================================
+initSetup();
+</script>
+</body>
+</html>=
+
+
+未经许可用于商业目的母被干死

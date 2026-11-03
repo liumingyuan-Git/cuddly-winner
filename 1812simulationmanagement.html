@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>比努亚村：夹缝求生</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0d0d0f; color: #d8d4c8; font-family: 'Georgia', 'Songti SC', serif; min-height: 100vh; display: flex; justify-content: center; padding: 16px; }
+#app { max-width: 720px; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+#header { text-align: center; border-bottom: 1px solid #3a362e; padding-bottom: 12px; }
+#header h1 { font-size: 20px; font-weight: normal; letter-spacing: 2px; color: #c9a96a; }
+#header p { font-size: 12px; color: #6b665c; margin-top: 4px; }
+#nav { display: flex; gap: 6px; justify-content: center; }
+#nav button { flex: 1; padding: 10px; background: #1c1c22; color: #b8b0a0; border: 1px solid #3a362e; cursor: pointer; font-family: inherit; font-size: 14px; transition: all 0.15s; }
+#nav button:hover { color: #f0ead8; border-color: #c9a96a; }
+#nav button.active { background: #26262e; color: #c9a96a; border-color: #c9a96a; }
+.panel { display: none; flex-direction: column; gap: 12px; }
+.panel.active { display: flex; }
+#status { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #14141a; border: 1px solid #2e2a22; padding: 12px; font-size: 12px; }
+.res { display: flex; justify-content: space-between; padding: 4px 6px; border-bottom: 1px solid #1c1c22; }
+.res-name { color: #8a8272; }
+.res-val { color: #d8d4c8; font-weight: bold; }
+.res-val.low { color: #ef4444; }
+.res-val.high { color: #f97316; }
+#event-text { background: #14141a; border: 1px solid #2e2a22; padding: 20px; font-size: 15px; line-height: 1.9; min-height: 160px; }
+.line-white { color: #e0dcd0; }
+.line-yellow { color: #e8c96a; }
+.line-green { color: #7cfc7c; }
+.line-red { color: #ef4444; }
+#choices { display: flex; flex-direction: column; gap: 8px; }
+#choices button { background: #1c1c22; color: #d8d4c8; border: 1px solid #3a362e; padding: 14px; cursor: pointer; font-family: inherit; font-size: 15px; text-align: left; transition: all 0.15s; }
+#choices button:hover { background: #26262e; border-color: #c9a96a; color: #f0ead8; }
+#wiki, #guide, #endings { background: #14141a; border: 1px solid #2e2a22; padding: 20px; font-size: 14px; line-height: 1.8; }
+#wiki h2, #guide h2, #endings h2 { color: #c9a96a; font-size: 16px; margin: 16px 0 8px; font-weight: normal; border-bottom: 1px solid #2e2a22; padding-bottom: 4px; }
+#wiki p, #guide p, #endings p { color: #b8b0a0; margin-bottom: 8px; }
+#endings ul { list-style: none; }
+#endings li { padding: 4px 0; }
+#endings li.locked { color: #3a362e; }
+#endings li.unlocked { color: #c9a96a; }
+#footer { display: flex; justify-content: space-between; font-size: 12px; color: #6b665c; padding-top: 8px; border-top: 1px solid #2e2a22; }
+#intro { font-size: 15px; line-height: 2; color: #b8b0a0; }
+#intro button { margin-top: 12px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>比努亚村：夹缝求生</h1>
+    <p>1812年9月 · 莫斯科河沿岸 · 六十天</p>
+  </div>
+  <div id="nav">
+    <button class="active" onclick="switchPanel('game')">游戏</button>
+    <button onclick="switchPanel('wiki')">Wiki</button>
+    <button onclick="switchPanel('guide')">攻略</button>
+    <button onclick="switchPanel('endings')">结局</button>
+  </div>
+  <div class="panel active" id="panel-game">
+    <div id="status"></div>
+    <div id="event-text"></div>
+    <div id="choices"></div>
+    <div id="footer">
+      <span id="day-display">第1天</span>
+      <span id="save-status"></span>
+    </div>
+  </div>
+  <div class="panel" id="panel-wiki"><div id="wiki"></div></div>
+  <div class="panel" id="panel-guide"><div id="guide"></div></div>
+  <div class="panel" id="panel-endings"><div id="endings"></div></div>
+  <div style="display:flex;gap:8px;justify-content:center;">
+    <button onclick="resetGame()" style="background:none;border:1px solid #3a362e;color:#6b665c;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;">重新开始</button>
+    <button onclick="clearSave()" style="background:none;border:1px solid #ef4444;color:#ef4444;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;">清除存档</button>
+  </div>
+</div>
+<script>const wikiData = `
+<h2>比努亚村</h2>
+<p>莫斯科河沿岸村庄，1812年9月法俄两军在此附近发生遭遇战。村庄位于莫斯科河以南，村外有树林、小溪与俄军临时防线。俄军在此强征民夫，引发村民不满。战后法军在村外修建坟地。</p>
+<h2>别列亚外围遭遇战</h2>
+<p>1812年9月中旬，法军主力向莫斯科推进期间，俄军后卫部队与地方民团在莫斯科河沿岸组织阻滞作战。法军第17独立团与俄军第23守备团在比努亚村附近发生遭遇战。双方总伤亡约1400人。法军战术胜利，俄军战术撤退。</p>
+<h2>俄军猎兵</h2>
+<p>由当地猎户与神射手组成，熟悉地形，枪法精准。在比努亚村外围遭遇战中依托树林狙击法军，对法军推进造成极大威胁。战后大部分被俘，少数逃脱后并入其他部队或隐姓埋名。</p>
+<h2>比努亚村人民起义</h2>
+<p>1812年9月中旬，比努亚村村民因不堪俄军强征劳役，爆发武装起义。起义由当地木匠格里戈里·叶戈罗夫领导，约200余人以草叉、锄头、火枪、土炮为武器。起义军与俄军展开近战，在遭到俄军围堵与法军燃烧弹纵火失控的双重打击下，伤亡惨重。</p>
+<h2>无名排长纪念碑</h2>
+<p>战后当地村民为一名独冲敌阵的法军步兵排长所立的小型纪念碑。19世纪后期因历史原因被拆除，残件散佚，排长姓名失传。</p>
+<h2>圣尼古拉木教堂</h2>
+<p>比努亚村及周边村庄共用的东正教教区教堂，木结构，保存有谢苗诺夫副官遗物与教区登记簿。</p>
+<h2>埃德蒙·德·瓦雷纳画稿</h2>
+<p>法军随军画师埃德蒙·德·瓦雷纳在比努亚村外围遭遇战中绘制的战场素描与速写。原稿为铅笔淡彩，大部分散佚，现存仅有复制品与注记。</p>
+<h2>皮埃尔·杜邦日记</h2>
+<p>法军一级军士长皮埃尔·杜邦在比努亚村外围遭遇战期间所写的日记，详细记录了战场情况。该日记后经整理出版，成为研究此战的重要口述史料来源之一。</p>
+`;
+
+const guideData = `
+<h2>游戏规格</h2>
+<p>类型：文字经营模拟，事件驱动，多结局。平台：HTML，单文件，浏览器打开即玩。时长：一局约25-40分钟，可反复重玩。</p>
+<h2>核心机制</h2>
+<p>九项资源：粮食、钱、人、兵、生活资源、军事资源、药品、俄军好感、法军好感、民心。每一项，低也死，高也死。只有维持在中间，才能活。</p>
+<h2>四色文本</h2>
+<p><span class="line-white">白色</span>：事实。<span class="line-yellow">黄色</span>：建议。<span class="line-green">绿色</span>：氛围。<span class="line-red">红色</span>：警告。</p>
+<h2>攻略</h2>
+<p><b>资源维持原则：</b>低于10出事，高于90出事。连续三天低于15或高于85，也出事。</p>
+<p><b>优先级：</b>粮 &gt; 民心 &gt; 人 &gt; 钱 &gt; 药 &gt; 生活资源 &gt; 军事资源 &gt; 俄军好感 ≈ 法军好感。</p>
+<p><b>常见死因：</b>粮低饿死、民心低暴动、俄军好感低被烧、法军好感低被抢。</p>
+<p><b>常见爆表死因：</b>粮高被征、钱高被敲诈、兵高被围剿、民心高被怀疑煽动。</p>
+<p><b>诀窍：</b>别让任何一项资源连续三天偏离中间太远。</p>
+`;
+
+const ALL_ENDINGS = [
+  "撑过六十天",
+  "粮食崩盘", "粮食爆表",
+  "钱崩盘", "钱爆表",
+  "人崩盘", "人爆表",
+  "兵崩盘", "兵爆表",
+  "生活资源崩盘", "生活资源爆表",
+  "军事资源崩盘", "军事资源爆表",
+  "药品崩盘", "药品爆表",
+  "俄军好感崩盘", "俄军好感爆表",
+  "法军好感崩盘", "法军好感爆表",
+  "民心崩盘", "民心爆表"
+];
+
+function renderEndings() {
+  const unlocked = JSON.parse(localStorage.getItem("binua_endings")) || [];
+  let html = "<h2>结局图鉴</h2><p>进度：" + unlocked.length + " / " + ALL_ENDINGS.length + "</p><ul>";
+  ALL_ENDINGS.forEach(e => {
+    if (unlocked.includes(e)) {
+      html += `<li class="unlocked">◆ ${e}</li>`;
+    } else {
+      html += `<li class="locked">◇ ???</li>`;
+    }
+  });
+  html += "</ul>";
+  document.getElementById("endings").innerHTML = html;
+}
+
+function unlockEnding(name) {
+  let unlocked = JSON.parse(localStorage.getItem("binua_endings")) || [];
+  if (!unlocked.includes(name)) {
+    unlocked.push(name);
+    localStorage.setItem("binua_endings", JSON.stringify(unlocked));
+  }
+  renderEndings();
+}let state = {
+  day: 1,
+  food: 50, money: 50, people: 50, troops: 50,
+  living: 50, military: 50, medicine: 50,
+  russian: 50, french: 50, morale: 50,
+  gameOver: false,
+  cooldowns: {},
+  dangerDays: {}
+};
+
+const RES_NAMES = {
+  food: "粮食", money: "钱", people: "人", troops: "兵",
+  living: "生活资源", military: "军事资源", medicine: "药品",
+  russian: "俄军好感", french: "法军好感", morale: "民心"
+};
+
+const SAFE_MIN = 30;
+const SAFE_MAX = 70;
+
+function clampResources() {
+  Object.keys(RES_NAMES).forEach(key => {
+    if (state[key] > 100) state[key] = 100;
+    if (state[key] < 0) state[key] = 0;
+  });
+}
+
+function renderStatus() {
+  const box = document.getElementById("status");
+  box.innerHTML = "";
+  Object.keys(RES_NAMES).forEach(key => {
+    const val = state[key];
+    const div = document.createElement("div");
+    div.className = "res";
+    let cls = "res-val";
+    if (val <= 10) cls += " low";
+    else if (val >= 90) cls += " high";
+    div.innerHTML = `<span class="res-name">${RES_NAMES[key]}</span><span class="${cls}">${val}</span>`;
+    box.appendChild(div);
+  });
+}
+
+function renderEvent(event) {
+  const box = document.getElementById("event-text");
+  box.innerHTML = "";
+  event.lines.forEach(line => {
+    const p = document.createElement("div");
+    p.className = "line-" + line.type;
+    p.textContent = line.text;
+    p.style.marginBottom = "6px";
+    box.appendChild(p);
+  });
+  const choicesBox = document.getElementById("choices");
+  choicesBox.innerHTML = "";
+  event.choices.forEach(c => {
+    const btn = document.createElement("button");
+    btn.textContent = c.label;
+    btn.onclick = () => {
+      c.effect(state);
+      clampResources();
+      state.day++;
+      if (checkEnding()) return;
+      nextDay();
+    };
+    choicesBox.appendChild(btn);
+  });
+}
+
+function saveGame() {
+  localStorage.setItem("binua_save", JSON.stringify({
+    day: state.day, food: state.food, money: state.money,
+    people: state.people, troops: state.troops, living: state.living,
+    military: state.military, medicine: state.medicine,
+    russian: state.russian, french: state.french, morale: state.morale,
+    cooldowns: state.cooldowns, dangerDays: state.dangerDays
+  }));
+}
+
+function loadGame() {
+  const data = localStorage.getItem("binua_save");
+  if (!data) return false;
+  try {
+    const s = JSON.parse(data);
+    Object.assign(state, s);
+    return true;
+  } catch (e) { return false; }
+}const allEvents = [
+  {
+    id: "requisition",
+    baseWeight: 10,
+    cooldown: 5,
+    condition: (s) => s.food > 55,
+    weightModifier: (s) => s.food > 80 ? 30 : 10,
+    lines: [
+      { type: "white", text: "俄军征粮队到了村口。他们要500kg粮食。" },
+      { type: "yellow", text: "最好配合他们。上次拒绝的村子被烧了。" },
+      { type: "green", text: "据说，他们走的时候，还带走了几个年轻人。" },
+      { type: "red", text: "如果不交，俄军可能直接抢，甚至烧村。" }
+    ],
+    choices: [
+      { label: "交粮", effect: (s) => { s.food -= 25; s.russian += 10; s.morale -= 5; } },
+      { label: "拒绝", effect: (s) => { s.russian -= 20; s.morale += 5; s.food -= 5; } },
+      { label: "拖延", effect: (s) => { s.russian -= 5; s.food -= 15; } }
+    ]
+  },
+  {
+    id: "hungry_village",
+    baseWeight: 10,
+    cooldown: 4,
+    condition: (s) => s.food < 45,
+    weightModifier: (s) => s.food < 20 ? 30 : 10,
+    lines: [
+      { type: "white", text: "村里断粮了。有人开始啃树皮。" },
+      { type: "yellow", text: "你得想办法弄到吃的。" },
+      { type: "green", text: "孩子们的眼睛盯着你，像在问：今天有饭吗？" },
+      { type: "red", text: "如果三天内不解决，会有人饿死。" }
+    ],
+    choices: [
+      { label: "向俄军借粮", effect: (s) => { s.russian -= 10; s.food += 25; } },
+      { label: "向法军借粮", effect: (s) => { s.french -= 10; s.food += 25; } },
+      { label: "忍着", effect: (s) => { s.food -= 5; s.morale -= 15; s.people -= 10; } }
+    ]
+  },
+  {
+    id: "french_forage",
+    baseWeight: 10,
+    cooldown: 5,
+    condition: (s) => s.living > 55,
+    weightModifier: (s) => s.living > 80 ? 30 : 10,
+    lines: [
+      { type: "white", text: "法军来征木料。他们说要修工事。" },
+      { type: "yellow", text: "给他们一点，能换点好感。" },
+      { type: "green", text: "村里老人说，法军上次来，还给了几袋面粉。" },
+      { type: "red", text: "不给，他们可能自己动手拆房子。" }
+    ],
+    choices: [
+      { label: "给木料", effect: (s) => { s.living -= 25; s.french += 10; } },
+      { label: "拒绝", effect: (s) => { s.french -= 15; s.morale += 5; } },
+      { label: "给一半", effect: (s) => { s.living -= 10; s.french += 5; } }
+    ]
+  }
+];const foodEvents = [
+  {
+    id: "hoarding",
+    baseWeight: 8,
+    cooldown: 6,
+    condition: (s) => s.food > 65,
+    weightModifier: (s) => s.food > 85 ? 25 : 0,
+    lines: [
+      { type: "white", text: "有人发现，粮仓里还藏着不少粮食。" },
+      { type: "yellow", text: "村民开始窃窃私语，说你不肯分粮。" },
+      { type: "green", text: "粮仓看守说，他看见有人半夜在仓外转悠。" },
+      { type: "red", text: "如果继续囤着，可能会有人夜里来抢。" }
+    ],
+    choices: [
+      { label: "分粮", effect: (s) => { s.food -= 20; s.morale += 15; } },
+      { label: "继续囤", effect: (s) => { s.morale -= 15; s.people -= 10; s.food += 5; } }
+    ]
+  },
+  {
+    id: "merchant",
+    baseWeight: 6,
+    cooldown: 8,
+    condition: (s) => s.money > 50,
+    weightModifier: (s) => s.money > 70 ? 15 : 0,
+    lines: [
+      { type: "white", text: "一个商人路过村子，说可以卖粮。" },
+      { type: "yellow", text: "价格不便宜，但能救急。" },
+      { type: "green", text: "他说，他是从莫斯科方向来的，那边也不太平。" },
+      { type: "red", text: "如果你不买，他明天就走。" }
+    ],
+    choices: [
+      { label: "买粮", effect: (s) => { s.money -= 20; s.food += 25; } },
+      { label: "不买", effect: (s) => { s.food -= 5; } },
+      { label: "讨价还价", effect: (s) => { s.money -= 15; s.food += 20; s.morale += 5; } }
+    ]
+  }
+];
+
+const moneyEvents = [
+  {
+    id: "tax_collector",
+    baseWeight: 8,
+    cooldown: 6,
+    condition: (s) => s.money > 55,
+    weightModifier: (s) => s.money > 80 ? 25 : 0,
+    lines: [
+      { type: "white", text: "俄军税务官来了，说要加征特别税。" },
+      { type: "yellow", text: "给钱，能换安宁。" },
+      { type: "green", text: "村里老人说，上次交税之后，俄军就没再来过。" },
+      { type: "red", text: "不给，他们可能以'通敌'为由抓人。" }
+    ],
+    choices: [
+      { label: "给钱", effect: (s) => { s.money -= 25; s.russian += 10; } },
+      { label: "拒绝", effect: (s) => { s.russian -= 15; s.money += 5; } }
+    ]
+  },
+  {
+    id: "wages",
+    baseWeight: 8,
+    cooldown: 5,
+    condition: (s) => s.money < 45,
+    weightModifier: (s) => s.money < 20 ? 25 : 0,
+    lines: [
+      { type: "white", text: "民夫和工匠的工钱发不出来了。" },
+      { type: "yellow", text: "得想办法安抚他们。" },
+      { type: "green", text: "有人说，不给钱就走人。" },
+      { type: "red", text: "如果不解决，明天没人干活。" }
+    ],
+    choices: [
+      { label: "借钱发薪", effect: (s) => { s.money -= 10; s.people += 5; s.morale += 5; } },
+      { label: "拖欠", effect: (s) => { s.people -= 15; s.morale -= 15; } }
+    ]
+  }
+];const troopsEvents = [
+  {
+    id: "russian_suspect",
+    baseWeight: 8,
+    cooldown: 7,
+    condition: (s) => s.troops > 55,
+    weightModifier: (s) => s.troops > 80 ? 25 : 0,
+    lines: [
+      { type: "white", text: "俄军派人来查，说你们村私藏武装。" },
+      { type: "yellow", text: "最好让他们看看，你们没有恶意。" },
+      { type: "green", text: "村里人说，这些兵是退伍老兵，不是土匪。" },
+      { type: "red", text: "如果他们认定你们要造反，会直接派兵围剿。" }
+    ],
+    choices: [
+      { label: "交出武器", effect: (s) => { s.troops -= 20; s.military -= 10; s.russian += 15; } },
+      { label: "藏起来", effect: (s) => { s.russian -= 15; s.troops += 5; } },
+      { label: "贿赂", effect: (s) => { s.money -= 15; s.russian += 5; } }
+    ]
+  }
+];
+
+const livingEvents = [
+  {
+    id: "winter_cold",
+    baseWeight: 8,
+    cooldown: 5,
+    condition: (s) => s.living < 45,
+    weightModifier: (s) => s.living < 20 ? 25 : 0,
+    lines: [
+      { type: "white", text: "天气转冷，村里缺柴火。" },
+      { type: "yellow", text: "得想办法弄到木料。" },
+      { type: "green", text: "老人和孩子冻得缩在屋里，不敢出门。" },
+      { type: "red", text: "如果今晚之前不解决，会有人冻死。" }
+    ],
+    choices: [
+      { label: "拆旧屋", effect: (s) => { s.living += 15; s.morale -= 10; } },
+      { label: "向法军要", effect: (s) => { s.french -= 10; s.living += 25; } },
+      { label: "忍着", effect: (s) => { s.people -= 15; s.morale -= 15; } }
+    ]
+  }
+];
+
+const militaryEvents = [
+  {
+    id: "weapons_missing",
+    baseWeight: 6,
+    cooldown: 8,
+    condition: (s) => s.military < 45,
+    weightModifier: (s) => s.military < 20 ? 20 : 0,
+    lines: [
+      { type: "white", text: "村里仅有的几支枪不见了。" },
+      { type: "yellow", text: "可能是被人偷了，也可能是藏起来了。" },
+      { type: "green", text: "有人说，看见几个年轻人半夜往树林去了。" },
+      { type: "red", text: "如果被俄军发现你们没有武器，会直接接管村子。" }
+    ],
+    choices: [
+      { label: "追查", effect: (s) => { s.military += 5; s.morale -= 5; } },
+      { label: "算了", effect: (s) => { s.military -= 10; s.morale -= 10; } }
+    ]
+  }
+];
+
+const medicineEvents = [
+  {
+    id: "wounded",
+    baseWeight: 8,
+    cooldown: 5,
+    condition: (s) => s.medicine < 45,
+    weightModifier: (s) => s.medicine < 20 ? 25 : 0,
+    lines: [
+      { type: "white", text: "伤员伤口感染，药品不够用。" },
+      { type: "yellow", text: "得想办法弄药。" },
+      { type: "green", text: "随军医生说，再拖下去，人就没救了。" },
+      { type: "red", text: "如果不解决，会有更多人死。" }
+    ],
+    choices: [
+      { label: "向法军要药", effect: (s) => { s.french -= 10; s.medicine += 20; s.people += 5; } },
+      { label: "向俄军要药", effect: (s) => { s.russian -= 10; s.medicine += 20; s.people += 5; } },
+      { label: "忍着", effect: (s) => { s.people -= 15; s.morale -= 15; } }
+    ]
+  }
+];const russianEvents = [
+  {
+    id: "russian_patrol",
+    baseWeight: 8,
+    cooldown: 6,
+    condition: (s) => s.russian < 45,
+    weightModifier: (s) => s.russian < 20 ? 25 : 0,
+    lines: [
+      { type: "white", text: "俄军巡逻队路过村子，没有停留。" },
+      { type: "yellow", text: "他们可能是在试探你们的态度。" },
+      { type: "green", text: "有人说，他们在村外看了很久才走。" },
+      { type: "red", text: "如果俄军好感继续下降，他们可能会采取行动。" }
+    ],
+    choices: [
+      { label: "送点吃的", effect: (s) => { s.food -= 10; s.russian += 10; } },
+      { label: "不理", effect: (s) => { s.russian -= 10; } }
+    ]
+  }
+];
+
+const frenchEvents = [
+  {
+    id: "french_offer",
+    baseWeight: 8,
+    cooldown: 6,
+    condition: (s) => s.french < 45,
+    weightModifier: (s) => s.french < 20 ? 25 : 0,
+    lines: [
+      { type: "white", text: "法军派人来谈，说可以保护村子。" },
+      { type: "yellow", text: "接受保护，能换来安全。" },
+      { type: "green", text: "村里人担心，这等于投靠法军。" },
+      { type: "red", text: "不接受，法军可能会把你们当成敌对方。" }
+    ],
+    choices: [
+      { label: "接受", effect: (s) => { s.french += 15; s.russian -= 10; s.morale -= 5; } },
+      { label: "拒绝", effect: (s) => { s.french -= 15; s.morale += 5; } }
+    ]
+  }
+];
+
+const moraleEvents = [
+  {
+    id: "village_meeting",
+    baseWeight: 8,
+    cooldown: 6,
+    condition: (s) => s.morale < 45,
+    weightModifier: (s) => s.morale < 20 ? 25 : 0,
+    lines: [
+      { type: "white", text: "村民在村口聚集，要求你给个说法。" },
+      { type: "yellow", text: "安抚他们，或者让他们闹。" },
+      { type: "green", text: "有人在人群里喊：'我们不能这样下去了。'" },
+      { type: "red", text: "如果不处理，明天可能有人离开村子。" }
+    ],
+    choices: [
+      { label: "安抚", effect: (s) => { s.morale += 10; s.food -= 5; } },
+      { label: "镇压", effect: (s) => { s.morale -= 15; s.people -= 10; } }
+    ]
+  }
+];
+
+const overflowEvents = [
+  {
+    id: "overflow_food",
+    baseWeight: 15,
+    cooldown: 2,
+    condition: (s) => s.food > 80,
+    weightModifier: (s) => s.food > 90 ? 40 : 20,
+    lines: [
+      { type: "white", text: "粮仓满了，老鼠成群结队。" },
+      { type: "yellow", text: "你得想办法处理这些粮食。" },
+      { type: "green", text: "有人说，邻村已经饿得啃树皮了。" },
+      { type: "red", text: "如果被俄军发现你囤了这么多粮，他们会直接来抢。" }
+    ],
+    choices: [
+      { label: "分给邻村", effect: (s) => { s.food -= 20; s.morale += 10; s.russian -= 5; } },
+      { label: "继续囤", effect: (s) => { s.food += 10; s.morale -= 10; } },
+      { label: "偷偷卖掉", effect: (s) => { s.food -= 15; s.money += 15; } }
+    ]
+  },
+  {
+    id: "overflow_money",
+    baseWeight: 15,
+    cooldown: 2,
+    condition: (s) => s.money > 80,
+    weightModifier: (s) => s.money > 90 ? 40 : 20,
+    lines: [
+      { type: "white", text: "你的钱太多了，藏不住了。" },
+      { type: "yellow", text: "有人开始打听你的钱从哪来的。" },
+      { type: "green", text: "土匪在村外转悠，可能是冲着钱来的。" },
+      { type: "red", text: "如果被俄军知道你有这么多钱，他们会以'通敌'为由没收。" }
+    ],
+    choices: [
+      { label: "散财", effect: (s) => { s.money -= 20; s.morale += 10; } },
+      { label: "继续藏", effect: (s) => { s.money += 10; s.morale -= 10; } },
+      { label: "贿赂俄军", effect: (s) => { s.money -= 15; s.russian += 10; } }
+    ]
+  },
+  {
+    id: "overflow_troops",
+    baseWeight: 15,
+    cooldown: 2,
+    condition: (s) => s.troops > 80,
+    weightModifier: (s) => s.troops > 90 ? 40 : 20,
+    lines: [
+      { type: "white", text: "你手下的人太多了。" },
+      { type: "yellow", text: "有人开始怀疑你想干什么。" },
+      { type: "green", text: "俄军派了探子来村里打听。" },
+      { type: "red", text: "如果俄军认定你要造反，会直接派兵围剿。" }
+    ],
+    choices: [
+      { label: "解散一部分", effect: (s) => { s.troops -= 20; s.morale -= 5; } },
+      { label: "继续招人", effect: (s) => { s.troops += 10; s.russian -= 10; } },
+      { label: "主动向俄军报备", effect: (s) => { s.troops -= 10; s.russian += 10; } }
+    ]
+  },
+  {
+    id: "overflow_morale",
+    baseWeight: 15,
+    cooldown: 2,
+    condition: (s) => s.morale > 80,
+    weightModifier: (s) => s.morale > 90 ? 40 : 20,
+    lines: [
+      { type: "white", text: "村民对你言听计从，甚至有点过分热情。" },
+      { type: "yellow", text: "这种气氛，俄军不会喜欢。" },
+      { type: "green", text: "有人说，你比俄军长官还像长官。" },
+      { type: "red", text: "如果俄军觉得你在煽动村社自治，会直接来抓你。" }
+    ],
+    choices: [
+      { label: "低调一点", effect: (s) => { s.morale -= 15; } },
+      { label: "继续维持", effect: (s) => { s.morale += 10; s.russian -= 10; } },
+      { label: "向俄军表忠", effect: (s) => { s.morale -= 10; s.russian += 10; } }
+    ]
+  }
+];function nextDay() {
+  if (checkEnding()) return;
+  if (state.day > 60) {
+    endGame("撑过六十天");
+    return;
+  }
+  document.getElementById("day-display").textContent = "第" + state.day + "天";
+  renderStatus();
+  saveGame();
+  let event = pickEvent();
+  if (!event) {
+    event = {
+      id: "daily",
+      lines: [
+        { type: "white", text: "今天没有军队来，也没有人来闹。" },
+        { type: "yellow", text: "你可以趁这个机会，看看村子里的情况。" },
+        { type: "green", text: "村里很安静，但你知道，这安静不会太久。" }
+      ],
+      choices: [
+        { label: "巡视村子", effect: (s) => { s.morale += 3; } },
+        { label: "检查粮仓", effect: (s) => { s.food += 3; } },
+        { label: "休息", effect: (s) => { s.people += 3; } }
+      ]
+    };
+  }
+  renderEvent(event);
+}
+
+function pickEvent() {
+  const all = allEvents.concat(foodEvents, moneyEvents, troopsEvents, livingEvents, militaryEvents, medicineEvents, russianEvents, frenchEvents, moraleEvents, overflowEvents);
+  const candidates = all.filter(e => {
+    if (state.cooldowns[e.id] && state.day - state.cooldowns[e.id] < (e.cooldown || 3)) return false;
+    if (e.condition && !e.condition(state)) return false;
+    return true;
+  });
+  if (candidates.length === 0) return null;
+  let total = 0;
+  candidates.forEach(e => {
+    const w = e.baseWeight + (e.weightModifier ? e.weightModifier(state) : 0);
+    e._w = Math.max(1, w);
+    total += e._w;
+  });
+  let roll = Math.random() * total;
+  for (const e of candidates) {
+    roll -= e._w;
+    if (roll <= 0) {
+      state.cooldowns[e.id] = state.day;
+      return e;
+    }
+  }
+  return candidates[0];
+}
+
+function checkEnding() {
+  for (const key of Object.keys(RES_NAMES)) {
+    if (state[key] <= 10) {
+      endGame(RES_NAMES[key] + "崩盘");
+      return true;
+    }
+    if (state[key] >= 90) {
+      endGame(RES_NAMES[key] + "爆表");
+      return true;
+    }
+    if (state[key] < 15 || state[key] > 85) {
+      state.dangerDays[key] = (state.dangerDays[key] || 0) + 1;
+      if (state.dangerDays[key] >= 3) {
+        endGame(RES_NAMES[key] + (state[key] < 15 ? "崩盘" : "爆表"));
+        return true;
+      }
+    } else {
+      state.dangerDays[key] = 0;
+    }
+  }
+  return false;
+}
+
+function endGame(name) {
+  state.gameOver = true;
+  unlockEnding(name);
+  document.getElementById("event-text").innerHTML = `<div class="line-red" style="font-size:18px;">结局：${name}</div>`;
+  document.getElementById("choices").innerHTML = "";
+  document.getElementById("footer").innerHTML = `<span>游戏结束</span><span>第${state.day}天</span>`;
+  let btn = document.createElement("button");
+  btn.textContent = "重新开始";
+  btn.onclick = resetGame;
+  document.getElementById("choices").appendChild(btn);
+}
+
+function switchPanel(name) {
+  document.querySelectorAll("#nav button").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  const map = { game: 0, wiki: 1, guide: 2, endings: 3 };
+  document.querySelectorAll("#nav button")[map[name]].classList.add("active");
+  document.getElementById("panel-" + name).classList.add("active");
+}
+
+function showIntro() {
+  const box = document.getElementById("event-text");
+  box.innerHTML = `
+    <div id="intro">
+      <p>1812年9月，莫斯科河沿岸，比努亚村。</p>
+      <p>俄军来了，法军也来了。你是一个村子的管事。</p>
+      <p>你没有枪，没有兵，没有权力。你只有六十天。</p>
+      <p>粮、木、人、药、钱、民心。每一项，都可能要你的命。每一项，太多了，也要你的命。</p>
+      <p>撑过去，村还在。撑不过去，你就什么都没有了。</p>
+      <button onclick="startFromIntro()" style="background:#c9a96a;color:#0d0d0f;border:none;padding:12px 24px;cursor:pointer;font-family:inherit;font-size:15px;">开始游戏</button>
+    </div>
+  `;
+  document.getElementById("choices").innerHTML = "";
+  document.getElementById("status").innerHTML = "";
+}
+
+function startFromIntro() {
+  if (!loadGame()) {
+    resetGame();
+  } else {
+    switchPanel("game");
+    nextDay();
+  }
+}
+
+function resetGame() {
+  state = {
+    day: 1,
+    food: 45 + Math.floor(Math.random() * 25),
+    money: 45 + Math.floor(Math.random() * 25),
+    people: 45 + Math.floor(Math.random() * 25),
+    troops: 45 + Math.floor(Math.random() * 25),
+    living: 45 + Math.floor(Math.random() * 25),
+    military: 45 + Math.floor(Math.random() * 25),
+    medicine: 40 + Math.floor(Math.random() * 25),
+    russian: 40 + Math.floor(Math.random() * 25),
+    french: 40 + Math.floor(Math.random() * 25),
+    morale: 45 + Math.floor(Math.random() * 25),
+    gameOver: false,
+    cooldowns: {},
+    dangerDays: {}
+  };
+  localStorage.removeItem("binua_save");
+  renderEndings();
+  switchPanel("game");
+  nextDay();
+}
+
+function clearSave() {
+  if (confirm("确定要清除所有进度吗？")) {
+    localStorage.removeItem("binua_save");
+    localStorage.removeItem("binua_endings");
+    resetGame();
+  }
+}
+
+document.getElementById("wiki").innerHTML = wikiData;
+document.getElementById("guide").innerHTML = guideData;
+renderEndings();
+showIntro();
+</script>
+</body>
+</html>

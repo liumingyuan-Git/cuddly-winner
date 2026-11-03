@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>比努亚村：三线交织</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0d0d0f; color: #d8d4c8; font-family: 'Georgia', 'Songti SC', serif; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
+#app { max-width: 680px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+#header { text-align: center; border-bottom: 1px solid #3a362e; padding-bottom: 15px; }
+#header h1 { font-size: 22px; font-weight: normal; letter-spacing: 2px; color: #c9a96a; }
+#header p { font-size: 13px; color: #6b665c; margin-top: 5px; }
+#image-box { margin-bottom: 15px; }
+#image-box img { width: 100%; border: 1px solid #3a362e; display: block; }
+#text { background: #16161a; border: 1px solid #2e2a22; padding: 24px; font-size: 17px; line-height: 2; min-height: 120px; white-space: pre-wrap; }
+#choices { display: flex; flex-direction: column; gap: 10px; }
+#choices button { background: #1c1c22; color: #d8d4c8; border: 1px solid #3a362e; padding: 14px 18px; cursor: pointer; font-size: 16px; font-family: inherit; text-align: left; transition: all 0.15s; }
+#choices button:hover { background: #26262e; border-color: #c9a96a; color: #f0ead8; }
+#ending { margin-top: 10px; padding: 20px; border: 1px solid #c9a96a; background: #1a1814; font-size: 16px; text-align: center; letter-spacing: 1px; color: #e8d8a8; }
+#achievements { margin-top: 10px; border-top: 1px solid #2e2a22; padding-top: 20px; }
+#achievements h3 { font-size: 15px; font-weight: normal; color: #6b665c; margin-bottom: 12px; letter-spacing: 1px; }
+#ending-list { list-style: none; font-size: 14px; line-height: 2; }
+.locked { color: #3a362e; }
+.unlocked { color: #c9a96a; }
+#progress { font-size: 13px; color: #6b665c; margin-top: 10px; }
+#restart { margin-top: 15px; background: none; border: 1px solid #3a362e; color: #6b665c; padding: 8px 16px; cursor: pointer; font-family: inherit; font-size: 13px; }
+#restart:hover { color: #c9a96a; border-color: #c9a96a; }
+#clear-save { margin-top: 10px; background: none; border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; cursor: pointer; font-family: inherit; font-size: 13px; }
+#clear-save:hover { background: rgba(239, 68, 68, 0.1); }
+#entry { display: flex; flex-direction: column; gap: 15px; }
+#entry button { background: #1c1c22; color: #d8d4c8; border: 1px solid #3a362e; padding: 20px; cursor: pointer; font-size: 18px; font-family: inherit; text-align: center; letter-spacing: 2px; transition: all 0.15s; }
+#entry button:hover { background: #26262e; border-color: #c9a96a; color: #f0ead8; }
+#save-status { font-size: 12px; color: #6b665c; text-align: center; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>比努亚村</h1>
+    <p>1812年9月 · 莫斯科河沿岸</p>
+  </div>
+  <div id="image-box"></div>
+  <div id="text"></div>
+  <div id="choices"></div>
+  <div id="ending"></div>
+  <div id="entry"></div>
+  <div id="achievements">
+    <h3>已解锁结局</h3>
+    <ul id="ending-list"></ul>
+    <p id="progress"></p>
+  </div>
+  <button id="restart" onclick="goEntry()">返回主菜单</button>
+  <button id="clear-save" onclick="clearAllSave()">清除所有进度</button>
+  <p id="save-status"></p>
+</div>
+<script>const allEndings = [
+  "我们必须想象，我们是幸福的",
+  "“我们必须想象，我们是幸福的？？？”",
+  "出师未捷身先死",
+  "飞蛾扑火",
+  "行将就木",
+  "永恒的丰碑",
+  "老来多惊梦，似有献刀人",
+  "受政治庇护的人们",
+  "人民战争",
+  "军法处置",
+  "消逝的生命",
+  "因公殉职",
+  "一律如常",
+  "肺病（史实结局）",
+  "功败垂成",
+  "壮烈牺牲",
+  "遗臭万年",
+  "众志成城",
+  "人事已尽，天命难违",
+  "革职查办",
+  "尚能饭否"
+];
+
+const story = {
+  painter_start: {
+    text: "1812年9月，你被派往莫斯科河沿岸。\n\n作为一名随军画师，你背着画夹，跟着第17独立团的队伍。\n\n你问自己：我为什么要来这里？",
+    choices: [
+      { label: "对呀，我应该留在巴黎画画的，我不去", next: "painter_refuse" },
+      { label: "算了，不管凡事都是最好的安排", next: "painter_accept" }
+    ]
+  },
+  painter_refuse: {
+    text: "你拒绝随军。\n\n军法官看着你，说：“战时拒绝征召，按军法处置。”\n\n你被押到墙边。枪声响起时，你还在想巴黎的画室。",
+    ending: "军法处置"
+  },
+  painter_accept: {
+    text: "你跟着队伍来到了前线。\n\n炮火震得你耳朵快要聋了。到处都是尸体。\n\n这跟描写中的骑士决斗完全不一样。",
+    choices: [
+      { label: "愿上帝怜悯我们", next: "painter_pray" },
+      { label: "你们不要再打了，你们都在干什么？", next: "painter_stop" }
+    ]
+  },
+  painter_stop: {
+    text: "你冲进战场中间，张开双臂，大喊：“你们不要再打了！”\n\n没有人听你的。\n\n一颗流弹穿过你的胸口。你倒在泥地里，画夹散了一地。",
+    ending: "消逝的生命"
+  },
+  painter_pray: {
+    text: "你被派去照看伤员。\n\n帐篷里全是血腥味。有人断了腿，有人瞎了眼，有人在喊妈妈。",
+    choices: [
+      { label: "给他们包扎一下伤口", next: "painter_bandage" },
+      { label: "给他们祈祷", next: "painter_prayer" }
+    ]
+  },
+  painter_bandage: {
+    text: "你撕开自己的衬衫，给伤员包扎。\n\n你忙了一整夜，没合眼。第二天清晨，你倒在帐篷里，再也没有起来。\n\n你死于伤口感染。士兵们把你埋在帐篷后面，立了一块木牌。",
+    ending: "因公殉职"
+  },
+  painter_prayer: {
+    text: "你跪在伤员中间，一个一个地为他们祈祷。\n\n有人在你祈祷时咽了气，有人握着你的手哭。\n\n你活了下来。",
+    choices: [
+      { label: "前线正在打仗，我去画一幅", next: "painter_draw" },
+      { label: "不去了，太危险", next: "painter_nodraw" }
+    ]
+  },
+  painter_nodraw: {
+    text: "你没有去前线。你在后方画帐篷、画伤员、画祈祷的人。\n\n战斗结束了。你活着回到了法国。\n\n你继续画画，画了一辈子。但你再也没有画过战争。",
+    ending: "一律如常"
+  },
+  painter_draw: {
+    text: "你背着画夹去了前线。你决定：",
+    choices: [
+      { label: "近距离观看，画得清楚一点", next: "painter_close" },
+      { label: "离远一点，安全第一", next: "painter_far" }
+    ]
+  },
+  painter_close: {
+    text: "你走到离战线只有几十步的地方，支起画架。\n\n你刚画下第一笔，俄军猎兵的子弹就打了过来。\n\n子弹打穿了你的右肩，贯穿肺部。你被抬下去时，手里还攥着画笔。",
+    ending: "肺病（史实结局）"
+  },
+  painter_far: {
+    text: "你站在远处，远远地看着战场。\n\n炮火、冲锋、烟雾、尸体，你一样都没画清楚。\n\n你活了下来。你回到法国，继续画画。",
+    ending: "一律如常"
+  },
+
+  russian_start: {
+    text: "法军来了。你作为俄军总指挥，必须做出决定。\n\n有人建议依托木桶防线进行防御，也有人建议主动进攻。",
+    choices: [
+      { label: "进行防御", next: "russian_defend" },
+      { label: "进攻", next: "russian_attack" }
+    ]
+  },
+  russian_attack: {
+    text: "你下令主动进攻。俄军冲出防线，迎击法军。\n\n但法军火力太猛，俄军被击退。你本人也在冲锋中阵亡。",
+    ending: "功败垂成"
+  },
+  russian_defend: {
+    text: "你下令依托木桶防线进行防御。\n\n工兵队上前拆陷阱，伤亡惨重。但防线仍在。\n\n这时，有人传令：你的村庄有人进行了起义。",
+    choices: [
+      { label: "派部分人支援", next: "russian_tower" },
+      { label: "不管不顾", next: "russian_tower" }
+    ]
+  },
+  russian_tower: {
+    text: "法军渐渐突破了防线。\n\n有人建议：你上瞭望塔，看看法国到底有多少人？",
+    choices: [
+      { label: "进入瞭望塔", next: "russian_tower_self" },
+      { label: "不进瞭望塔", next: "russian_ammo" },
+      { label: "让参谋进入", next: "russian_tower_deputy" }
+    ]
+  },
+  russian_tower_self: {
+    text: "你亲自上瞭望塔观察敌情。\n\n法军炮火正好覆盖瞭望塔。你被炮弹破片击中，当场阵亡。",
+    ending: "壮烈牺牲"
+  },
+  russian_tower_deputy: {
+    text: "你让参谋上瞭望塔。\n\n参谋在瞭望塔上被法军炮火击中，当场阵亡。\n\n你留在指挥位，继续指挥。",
+    choices: [
+      { label: "继续", next: "russian_ammo" }
+    ]
+  },
+  russian_ammo: {
+    text: "法军渐渐逼近。\n\n有人建议换葡萄弹，有人建议不换。你选择：",
+    choices: [
+      { label: "必须换", next: "russian_final_all" },
+      { label: "算了吧", next: "russian_final_none" },
+      { label: "部分换", next: "russian_final_part" }
+    ]
+  },
+  russian_final_all: {
+    text: "法军要攻入要塞了。你选择：",
+    choices: [
+      { label: "投降", next: "russian_surrender" },
+      { label: "死战到底", next: "russian_fight_all" },
+      { label: "逃跑", next: "russian_flee_all" }
+    ]
+  },
+  russian_final_none: {
+    text: "法军要攻入要塞了。你选择：",
+    choices: [
+      { label: "投降", next: "russian_surrender" },
+      { label: "死战到底", next: "russian_fight_none" },
+      { label: "逃跑", next: "russian_flee_none" }
+    ]
+  },
+  russian_final_part: {
+    text: "法军要攻入要塞了。你选择：",
+    choices: [
+      { label: "投降", next: "russian_surrender" },
+      { label: "死战到底", next: "russian_fight_part" },
+      { label: "逃跑", next: "russian_flee_part" }
+    ]
+  },
+  russian_surrender: {
+    text: "你下令投降。\n\n俄军放下武器。你被押到法军指挥官面前。\n\n战后，俄军军事法庭以叛国罪判处你死刑。你的名字被刻在耻辱柱上。",
+    ending: "遗臭万年"
+  },
+  russian_fight_all: {
+    text: "你下令死战到底。\n\n火炮全部装填葡萄弹，但法军散开推进，杀伤有限。\n\n俄军全军覆没。你本人在要塞中阵亡。",
+    ending: "人事已尽，天命难违"
+  },
+  russian_fight_none: {
+    text: "你下令死战到底。\n\n火炮未换弹药，但原有的实心弹和霰弹正好克制法军散兵。\n\n俄军重创法军，但最终仍因寡不敌众而失败。你本人在要塞中阵亡。\n\n事迹被后人传颂。",
+    ending: "众志成城"
+  },
+  russian_fight_part: {
+    text: "你下令死战到底。\n\n部分火炮换装葡萄弹，部分未换。火力参差不齐，未能有效压制法军。\n\n俄军全军覆没。你本人在要塞中阵亡。",
+    ending: "人事已尽，天命难违"
+  },
+  russian_flee_all: {
+    text: "你下令逃跑。\n\n你从要塞侧门突围，但被法军巡逻队抓获。\n\n战后，俄军军事法庭以临阵脱逃罪撤销你的职务，并判处查办。",
+    ending: "革职查办"
+  },
+  russian_flee_none: {
+    text: "你下令逃跑。\n\n你从要塞侧门突围。你活了下来。\n\n战后，俄军军事法庭追究你临阵脱逃。但因为你之前的指挥有可取之处（未换弹药，火力判断正确），未被严惩，只是被闲置。\n\n晚年有人问你：“尚能饭否？”你无言以对。",
+    ending: "尚能饭否"
+  },
+  russian_flee_part: {
+    text: "你下令逃跑。\n\n你从要塞侧门突围。你活了下来。\n\n战后，俄军军事法庭追究你临阵脱逃。但因为你之前的指挥有可取之处（部分换弹，火力判断较合理），未被严惩，只是被闲置。\n\n晚年有人问你：“尚能饭否？”你无言以对。",
+    ending: "尚能饭否"
+  },
+
+  start: {
+    text: "俄军在比努亚村强征民夫。民夫死伤惨重，且无抚恤。\n\n村民们聚在村口，商量怎么办。你站在人群里。",
+    choices: [
+      { label: "反抗", next: "resist" },
+      { label: "逆来顺受", next: "submit" }
+    ]
+  },
+  resist: {
+    text: "你带头喊：“不干了！凭什么让我们送死？”\n\n军警开枪。村民斯捷潘·叶戈罗夫当场遇难。\n\n当晚，格里戈里找到你，说：“不能就这么算了。”",
+    choices: [
+      { label: "武装斗争", next: "armed" },
+      { label: "或许……", next: "hesitate" }
+    ]
+  },
+  submit: {
+    text: "你低下头，说：“算了，忍忍吧。”\n\n民夫继续被征召。日子照旧。你活了下来，一直活着。",
+    ending: "我们必须想象，我们是幸福的"
+  },
+  hesitate: {
+    text: "你犹豫了。起义还是爆发了，但没有你的参与。\n\n你活到了最后，却好像从来没活过。",
+    ending: "“我们必须想象，我们是幸福的？？？”"
+  },
+  armed: {
+    text: "格里戈里、谢苗、马特维三人开始筹划起义。\n\n他们面临一个选择：",
+    choices: [
+      { label: "与法军合作", next: "cooperate" },
+      { label: "我们谁也不管", next: "alone" }
+    ]
+  },
+  alone: {
+    text: "三人决定独自发动起义。",
+    choices: [
+      { label: "大肆宣传", next: "propaganda" },
+      { label: "暗中活动", next: "secret" }
+    ]
+  },
+  propaganda: {
+    text: "告示贴得太早，消息走漏。三人被捕。\n\n军官问：“还有什么话说？”\n\n格里戈里抬起头：“没有了。”",
+    ending: "出师未捷身先死"
+  },
+  secret: {
+    text: "暗中准备数月，起义正式爆发。\n\n你选择进攻方向：",
+    choices: [
+      { label: "同军队对抗", next: "fightArmy" },
+      { label: "同警察对抗", next: "fightPolice" }
+    ]
+  },
+  fightArmy: {
+    text: "起义军冲向俄军阵地。三次冲锋，三次被打退。\n\n死伤六七十人后，你下令退入树林。",
+    ending: "飞蛾扑火"
+  },
+  fightPolice: {
+    text: "起义军攻下警察局，缴获一批枪支。\n\n但侦察的人跑回来报告：“俄军正规部队来了。”",
+    choices: [
+      { label: "留得青山在，不怕没柴烧", next: "retreat" },
+      { label: "战至最后一刻永不投降", next: "fightToEnd" },
+      { label: "我们只能希望他们善待我们", next: "surrender" }
+    ]
+  },
+  fightToEnd: {
+    text: "起义军在阵地前血战到底。\n\n格里戈里杀死两三名敌人，最后牺牲。",
+    ending: "飞蛾扑火"
+  },
+  surrender: {
+    text: "起义军放下武器。三天后，三人被判处死刑。",
+    ending: "行将就木"
+  },
+  retreat: {
+    text: "起义军退入树林。副指挥谢苗说：“我们必须联络法军。”",
+    choices: [
+      { label: "可以，必须同他们合作", next: "askFrench" },
+      { label: "我们至死不搭勾那些法国佬们", next: "refuseFrench" }
+    ]
+  },
+  askFrench: {
+    text: "谢苗趁夜出发，摸到法军前哨。\n\n法军指挥官问了他三个问题，沉默了一会儿……",
+    onEnter: function() {
+      return Math.random() < 0.25 ? "frenchRefuse" : "frenchAgree";
+    }
+  },
+  frenchRefuse: {
+    text: "法军拒绝了。谢苗带回一袋干粮。\n\n俄军围了上来。谢苗在突围时战死。",
+    ending: "永恒的丰碑"
+  },
+  frenchAgree: {
+    text: "法军同意了。杜邦率二十人援军到来，带来燃烧弹。\n\n杜邦说：“你们有木头吗？我们要做防火带。”",
+    choices: [
+      { label: "同意纵火", next: "burn" },
+      { label: "不同意纵火", next: "noBurn" }
+    ]
+  },
+  burn: {
+    text: "燃烧弹引燃树林边缘……",
+    onEnter: function() {
+      return Math.random() < 0.7 ? "burnFail" : "burnSuccess";
+    }
+  },
+  burnFail: {
+    text: "火势失控，反卷己阵。三人战死。\n\n但事迹被村民口口相传，成为后人记忆中的丰碑。",
+    ending: "永恒的丰碑"
+  },
+  burnSuccess: {
+    text: "火势逼退俄军。起义军撤到法军阵地。\n\n你成了法军的棋子，活了下来，但名字不再属于你自己。",
+    ending: "老来多惊梦，似有献刀人"
+  },
+  noBurn: {
+    text: "你拒绝纵火。法军撤回。\n\n起义军被围，接受法军政治庇护。活了下来，但失去了名字。",
+    ending: "受政治庇护的人们"
+  },
+  refuseFrench: {
+    text: "你拒绝了联络法军。",
+    choices: [
+      { label: "我们战到底", next: "fightToEnd" },
+      { label: "我们投降", next: "surrender" }
+    ]
+  },
+  cooperate: {
+    text: "决定一开始就联络法军。",
+    choices: [
+      { label: "派遣自己亲自去", next: "goSelf" },
+      { label: "派遣副指挥官去", next: "goDeputy" }
+    ]
+  },
+  goSelf: {
+    text: "你亲自去联络，途中被俄军暗哨发现。\n\n你倒在法军阵地前，没能说出联络的来意。",
+    ending: "出师未捷身先死"
+  },
+  goDeputy: {
+    text: "谢苗前往法军阵地。法军同意里应外合。",
+    choices: [
+      { label: "我们必须同法国人合作", next: "cooperateYes" },
+      { label: "我们需要保持独立", next: "cooperateNo" }
+    ]
+  },
+  cooperateYes: {
+    text: "你与法军合作。\n\n你成了傀儡，剥削曾经的战友。",
+    ending: "老来多惊梦，似有献刀人"
+  },
+  cooperateNo: {
+    text: "你保持独立。法军镇压你们。",
+    choices: [
+      { label: "我们还是必须屈服", next: "cooperateYes" },
+      { label: "在莫斯科森林里打游击", next: "guerrilla" }
+    ]
+  },
+  guerrilla: {
+    text: "你带残部退入森林，坚持游击。\n\n你们没有被历史记住，但你们确实是历史的一部分。",
+    ending: "人民战争"
+  }
+};function unlockEnding(name) {
+  let unlocked = JSON.parse(localStorage.getItem("achievements")) || [];
+  if (!unlocked.includes(name)) {
+    unlocked.push(name);
+    localStorage.setItem("achievements", JSON.stringify(unlocked));
+  }
+}
+
+function showAchievements() {
+  let unlocked = JSON.parse(localStorage.getItem("achievements")) || [];
+  let list = document.getElementById("ending-list");
+  list.innerHTML = "";
+  allEndings.forEach(e => {
+    let li = document.createElement("li");
+    if (unlocked.includes(e)) {
+      li.textContent = "◆ " + e;
+      li.className = "unlocked";
+    } else {
+      li.textContent = "◇ ???";
+      li.className = "locked";
+    }
+    list.appendChild(li);
+  });
+  document.getElementById("progress").textContent = "进度：" + unlocked.length + " / " + allEndings.length;
+}
+
+function saveProgress(nodeId) {
+  localStorage.setItem("currentNode", nodeId);
+  localStorage.setItem("saveTime", new Date().toLocaleString());
+}
+
+function loadProgress() {
+  return localStorage.getItem("currentNode");
+}
+
+function showNode(id) {
+  let node = story[id];
+  if (!node) return;
+  if (node.onEnter) {
+    let next = node.onEnter();
+    if (next) { showNode(next); return; }
+  }
+  saveProgress(id);
+  let imgBox = document.getElementById("image-box");
+  if (node.image) {
+    imgBox.innerHTML = '<img src="' + node.image + '" onerror="this.style.display=\'none\'">';
+  } else {
+    imgBox.innerHTML = "";
+  }
+  document.getElementById("text").innerText = node.text;
+  document.getElementById("choices").innerHTML = "";
+  document.getElementById("ending").innerHTML = "";
+  document.getElementById("entry").innerHTML = "";
+  if (node.ending) {
+    document.getElementById("ending").innerHTML = "结局：" + node.ending;
+    unlockEnding(node.ending);
+    showAchievements();
+  } else if (node.choices) {
+    node.choices.forEach(c => {
+      let btn = document.createElement("button");
+      btn.textContent = c.label;
+      btn.onclick = () => showNode(c.next);
+      document.getElementById("choices").appendChild(btn);
+    });
+  }
+}
+
+function goEntry() {
+  document.getElementById("text").innerText = "";
+  document.getElementById("choices").innerHTML = "";
+  document.getElementById("ending").innerHTML = "";
+  document.getElementById("image-box").innerHTML = "";
+  let entry = document.getElementById("entry");
+  entry.innerHTML = "";
+  let btn1 = document.createElement("button");
+  btn1.textContent = "法军：随军画师";
+  btn1.onclick = () => showNode("painter_start");
+  entry.appendChild(btn1);
+  let btn2 = document.createElement("button");
+  btn2.textContent = "俄军：总指挥彼得罗夫将军";
+  btn2.onclick = () => showNode("russian_start");
+  entry.appendChild(btn2);
+  let btn3 = document.createElement("button");
+  btn3.textContent = "起义军：木匠格里戈里";
+  btn3.onclick = () => showNode("start");
+  entry.appendChild(btn3);
+  let saved = loadProgress();
+  if (saved) {
+    let btnContinue = document.createElement("button");
+    btnContinue.textContent = "继续上次进度";
+    btnContinue.onclick = () => showNode(saved);
+    entry.appendChild(btnContinue);
+  }
+  document.getElementById("save-status").textContent = saved ? "上次存档：" + localStorage.getItem("saveTime") : "无存档";
+}
+
+function clearAllSave() {
+  if (confirm("确定要清除所有进度和成就吗？此操作不可恢复。")) {
+    localStorage.removeItem("achievements");
+    localStorage.removeItem("currentNode");
+    localStorage.removeItem("saveTime");
+    goEntry();
+    showAchievements();
+    document.getElementById("save-status").textContent = "已清除所有进度";
+  }
+}
+
+goEntry();
+showAchievements();
+</script>
+</body>
+</html>

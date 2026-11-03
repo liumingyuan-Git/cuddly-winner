@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>警局风云 · 最终修复版</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0e1a;color:#c8d0d8;font-family:'Courier New',monospace;touch-action:manipulation;user-select:none;-webkit-user-select:none;overflow:hidden;height:100vh;width:100vw;position:fixed;top:0;left:0}
+        #app{width:100%;height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#0a0e1a 0%,#1a2a3a 100%);padding:6px;max-width:500px;margin:0 auto}
+        .top-bar{display:flex;justify-content:space-between;align-items:center;padding:3px 6px;background:rgba(0,0,0,0.5);border-radius:6px;font-size:9px;flex-shrink:0;border:1px solid #2a3a5a}
+        .top-bar .title{color:#d4c9a8;font-weight:700;font-size:12px;letter-spacing:1px}
+        .top-bar .info{display:flex;gap:6px;color:#8a9aaa}
+        .top-bar .info span{color:#e8c86a}
+        .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;padding:3px 0;flex-shrink:0}
+        .stats .stat{background:rgba(0,0,0,0.3);border-radius:4px;padding:2px 3px;text-align:center;font-size:7px;border:1px solid #1a2a3a}
+        .stats .stat .val{color:#e8c86a;font-size:12px;font-weight:700;display:block}
+        .map-wrap{flex:1;margin:3px 0;background:rgba(0,20,40,0.6);border-radius:8px;border:1px solid #1a2a4a;overflow:hidden;position:relative;min-height:0;padding:4px;overflow-y:auto}
+        .section-title{color:#8a9aaa;font-size:9px;font-weight:600;margin:3px 0 2px;border-bottom:1px solid #1a2a3a;padding-bottom:2px}
+        .case-item{background:rgba(0,0,0,0.3);border-radius:4px;padding:2px 5px;margin:2px 0;display:flex;justify-content:space-between;align-items:center;border-left:3px solid #5a8ad4}
+        .case-item .prio-high{border-color:#d45a5a}
+        .case-item .prio-mid{border-color:#e8c86a}
+        .case-item .prio-low{border-color:#5a8a5a}
+        .case-item .name{color:#d0d8e0;font-size:8px}
+        .case-item .info{color:#7a8a9a;font-size:7px}
+        .btn{flex:1;min-width:30px;padding:4px 3px;border:1px solid #2a3a5a;border-radius:4px;background:#1a2a3a;color:#c8d0d8;font-size:8px;cursor:pointer;text-align:center;transition:0.1s;font-family:inherit;touch-action:manipulation}
+        .btn:active{transform:scale(0.95)}
+        .btn.primary{background:#2a4a3a;border-color:#4a8a5a;color:#d0f0d8}
+        .btn.danger{background:#4a2a2a;border-color:#8a4a4a;color:#f0d0d0}
+        .btn.warning{background:#4a3a2a;border-color:#8a7a4a;color:#f0e8d0}
+        .btn.success{background:#2a3a5a;border-color:#4a6a8a;color:#d0e8f0}
+        .btn:disabled{opacity:0.3;pointer-events:none}
+        .btn-row{display:flex;gap:3px;flex-wrap:wrap;margin:2px 0}
+        .bottom{flex-shrink:0;display:flex;flex-direction:column;gap:3px;padding:3px 0}
+        .log{background:rgba(0,0,0,0.4);border-radius:4px;padding:2px 6px;font-size:7px;color:#6a8a9a;max-height:24px;overflow:hidden;border:1px solid #1a2a3a;flex-shrink:0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+        .modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:100;padding:12px}
+        .modal.show{display:flex}
+        .modal-box{background:#1a2a3a;border:2px solid #3a5a7a;border-radius:12px;padding:14px;max-width:400px;width:100%;max-height:85vh;overflow-y:auto}
+        .modal-box h3{color:#e8c86a;font-size:15px;margin-bottom:6px;text-align:center}
+        .modal-box p{color:#b0c0d0;font-size:11px;line-height:1.4;margin-bottom:4px}
+        .modal-box .opt{display:block;width:100%;padding:7px;margin:2px 0;background:#0a1a2a;border:1px solid #2a4a5a;border-radius:6px;color:#c8d0d8;font-size:10px;text-align:left;cursor:pointer;transition:0.1s;font-family:inherit}
+        .modal-box .opt:active{background:#1a3a4a}
+        .modal-box .opt.selected{border-color:#e8c86a;background:#1a2a3a}
+        .modal-box .btn-row{display:flex;gap:6px;margin-top:8px}
+        .modal-box .btn-row .btn{flex:1}
+        ::-webkit-scrollbar{width:3px}
+        ::-webkit-scrollbar-track{background:#0a0e1a}
+        ::-webkit-scrollbar-thumb{background:#2a4a6a;border-radius:3px}
+        .news-item{background:rgba(0,0,0,0.2);border-radius:3px;padding:2px 5px;margin:1px 0;font-size:7px;border-left:2px solid #e8c86a}
+        .police-item{background:rgba(0,0,0,0.2);border-radius:3px;padding:2px 4px;font-size:7px;margin:1px 0}
+        .ad-banner{display:flex;flex-direction:column;align-items:center;padding:4px 6px;flex-shrink:0;background:rgba(0,0,0,0.3);border-radius:4px;margin-top:2px;border:1px dashed #3a5a4a;}
+        .ad-item{font-size:7px;color:#7a8a9a;background:rgba(10,20,30,0.6);padding:2px 8px;border-radius:12px;border:1px solid #2a4a3a;display:inline-flex;align-items:center;gap:4px;position:relative;}
+        .ad-item .ad-tag{font-size:5px;color:#5a8a5a;background:rgba(40,80,40,0.3);padding:0 4px;border-radius:3px;font-weight:700;}
+        .ad-item .brand{color:#e8c86a;font-weight:600;}
+        .ad-item .founder{color:#5a7a8a;font-size:6px;}
+        .ad-item:hover{border-color:#e8c86a;background:rgba(20,30,40,0.8);}
+        #snake-container{display:none;flex-direction:column;flex:1;align-items:center;justify-content:center;background:#0a0e1a;padding:4px}
+        #snake-canvas{width:100%;max-width:400px;aspect-ratio:1;background:#1a2a3a;border:2px solid #2a4a6a;border-radius:8px;image-rendering:pixelated}
+        #duck-container{display:none;flex-direction:column;flex:1;align-items:center;justify-content:center;background:#0a0e1a;padding:4px}
+        #duck-canvas{width:100%;max-width:400px;aspect-ratio:1.5;background:#1a3a2a;border:2px solid #2a6a4a;border-radius:8px;cursor:crosshair}
+        .duck-score{color:#e8c86a;font-size:12px;margin-bottom:4px}
+        .game-controls{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;justify-content:center}
+        .game-btn{padding:4px 12px;font-size:10px}
+        #credits-container{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:10px;overflow-y:auto}
+        #credits-container .title{color:#e8c86a;font-size:16px;margin-bottom:8px}
+        #credits-container .item{color:#b0c0d0;font-size:11px;padding:3px 0;border-bottom:1px solid #1a2a3a;width:80%;text-align:center}
+        #credits-container .item .model{color:#d4c9a8;font-weight:600}
+        @media(max-width:400px){.stats .stat .val{font-size:11px}.btn{font-size:7px;padding:3px 2px;min-width:24px}}
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="top-bar"><div class="title">🚔 警局风云</div><div class="info">第 <span id="turnNum">0</span> 周 | <span id="phaseText">规划</span></div></div>
+    <div class="stats" id="statsBar">
+        <div class="stat">💰 预算<span class="val" id="budgetVal">300</span></div>
+        <div class="stat">👮 警力<span class="val" id="policeVal">10</span></div>
+        <div class="stat">😊 民众<span class="val" id="publicSat">60%</span></div>
+        <div class="stat">🏛️ 政府<span class="val" id="govSat">70%</span></div>
+        <div class="stat">📊 犯罪率<span class="val" id="crimeRateVal">8.5%</span></div>
+    </div>
+    <div class="ad-banner" id="adBanner">
+        <div style="width:100%;text-align:center;font-size:6px;color:#5a7a8a;letter-spacing:2px;margin-bottom:2px;">🛒 赞助商广告</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;">
+            <span class="ad-item"><span class="ad-tag">AD</span> <span class="brand">DeepSeek</span> <span class="founder">· 梁文锋</span></span>
+            <span class="ad-item"><span class="ad-tag">AD</span> <span class="brand">豆包</span> <span class="founder">· 张一鸣</span></span>
+            <span class="ad-item"><span class="ad-tag">AD</span> <span class="brand">元宝</span> <span class="founder">· 李彦宏</span></span>
+            <span class="ad-item"><span class="ad-tag">AD</span> <span class="brand">千问</span> <span class="founder">· 马云</span></span>
+            <span class="ad-item"><span class="ad-tag">AD</span> <span class="brand">Kimi</span> <span class="founder">· 杨植麟</span></span>
+            <span class="ad-item"><span class="ad-tag">AD</span> <span class="brand">智谱</span> <span class="founder">· 张鹏</span></span>
+        </div>
+        <div style="width:100%;text-align:center;font-size:5px;color:#3a4a5a;margin-top:2px;border-top:1px dashed #2a3a4a;padding-top:2px;">
+            📢 联系局长办公室：<span style="color:#7a8a9a;">httgggttgtgtgtg@qq.com</span> 
+            | 个人网页：<span style="color:#7a8a9a;">liumingyuan.dpdns.org</span>
+        </div>
+    </div>
+    <div id="mainPolice" class="map-wrap" style="display:flex;"></div>
+    <div id="snake-container"><div class="snake-score">🐍 得分: <span id="snakeScore">0</span></div><canvas id="snake-canvas" width="400" height="400"></canvas><div class="game-controls"><button class="btn primary game-btn" id="snakeUp">▲</button><button class="btn primary game-btn" id="snakeDown">▼</button><button class="btn primary game-btn" id="snakeLeft">◀</button><button class="btn primary game-btn" id="snakeRight">▶</button><button class="btn danger game-btn" id="snakeRestart">↺</button><button class="btn warning game-btn" id="snakeBack">↩ 返回</button></div></div>
+    <div id="duck-container"><div class="duck-score">🦆 得分: <span id="duckScore">0</span> | 时间: <span id="duckTimer">30</span>s</div><canvas id="duck-canvas" width="600" height="400"></canvas><div class="game-controls"><button class="btn primary game-btn" id="duckStart">▶ 开始</button><button class="btn danger game-btn" id="duckRestart">↺ 重玩</button><button class="btn warning game-btn" id="duckBack">↩ 返回</button></div></div>
+    <div id="credits-container"><div class="title">🎬 制作组 · 员工名单</div><div id="creditsList"></div><button class="btn warning" id="creditsBack" style="margin-top:10px;width:80%;">↩ 返回</button></div>
+    <div class="bottom">
+        <div class="btn-row" id="btnRow">
+            <button class="btn primary" id="btnRecruit">招募</button>
+            <button class="btn success" id="btnEquip">装备</button>
+            <button class="btn warning" id="btnAdvisor">顾问</button>
+            <button class="btn" id="btnNews">新闻</button>
+            <button class="btn" id="btnHireThug">🔪雇佣</button>
+            <button class="btn" id="btnSnake">🐍娱乐</button>
+            <button class="btn" id="btnDuck">🦆打鸭</button>
+            <button class="btn" id="btnCredits">🎬制作</button>
+            <button class="btn danger" id="btnEndTurn">结束周</button>
+        </div>
+        <div class="log" id="log">🚔 欢迎！管理警局，守护城市</div>
+    </div>
+</div>
+
+<div class="modal show" id="menuModal"><div class="modal-box"><h3>🚔 警局风云 · 最终修复版</h3><p style="font-size:10px;color:#7a8a9a;text-align:center;">策略管理 · 模拟经营 · 内置小游戏</p><div id="menuOptions"></div><div class="btn-row"><button class="btn primary" id="startBtn" style="flex:1;">🏙️ 开始新任期</button></div><div style="margin-top:6px;font-size:8px;color:#5a6a7a;text-align:center;">招募警员 · 分配装备 · 处理案件 · 应对危机</div></div></div>
+<div class="modal" id="eventModal"><div class="modal-box"><h3 id="eventTitle">📞 紧急事件</h3><div id="eventContent"></div></div></div>
+<div class="modal" id="resultModal"><div class="modal-box"><h3 id="resultTitle">🏆 任期结束</h3><div id="resultContent"></div><div class="btn-row"><button class="btn" onclick="closeResult()">返回菜单</button><button class="btn primary" onclick="restartGame()">重新挑战</button></div></div></div>
+
+<script>
+// ============================================================
+// 数据定义
+// ============================================================
+const POLICE_TYPES={police:{name:'警察',salary:0.8,skill:5,cost:3,icon:'👮'},detective:{name:'警探',salary:1.2,skill:8,cost:5,icon:'🕵️'},swat:{name:'特警',salary:1.5,skill:12,cost:0,icon:'🔫'}};
+const THUG={name:'打手',salary:1.5,skill:12,cost:6,icon:'🔪',loyalty:100};
+const EQUIPMENTS=[{id:'pistol',name:'配枪',cost:2,bonus:2,icon:'🔫'},{id:'vest',name:'防弹衣',cost:3,bonus:3,icon:'🛡️'},{id:'radio',name:'通讯器',cost:1.5,bonus:1,icon:'📻'},{id:'drone',name:'无人机',cost:5,bonus:4,icon:'🛸'}];
+let G={turn:0,maxTurns:50,budget:300,police:[],cases:[],publicSat:60,govSat:70,crimeRate:8.5,totalSolved:0,totalFailed:0,news:[],sniper:null,gameOver:false,phase:'planning',log:[],lastSwatApply:-10,thugCount:0,specialItems:[],eventLock:false,_eventOptions:{},view:'police'};
+const $=id=>document.getElementById(id);
+const menuModal=$('menuModal'),resultModal=$('resultModal'),resultTitle=$('resultTitle'),resultContent=$('resultContent');
+const eventModal=$('eventModal'),eventTitle=$('eventTitle'),eventContent=$('eventContent');
+const turnNum=$('turnNum'),phaseText=$('phaseText'),budgetVal=$('budgetVal'),policeVal=$('policeVal');
+const publicSat=$('publicSat'),govSat=$('govSat'),crimeRateVal=$('crimeRateVal');
+const mainPolice=$('mainPolice'),snakeContainer=$('snake-container'),duckContainer=$('duck-container'),creditsContainer=$('credits-container');
+const log=$('log');
+const btnRecruit=$('btnRecruit'),btnEquip=$('btnEquip'),btnAdvisor=$('btnAdvisor'),btnNews=$('btnNews'),btnHireThug=$('btnHireThug'),btnEndTurn=$('btnEndTurn');
+const btnSnake=$('btnSnake'),btnDuck=$('btnDuck'),btnCredits=$('btnCredits');
+
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+function genId(){return Date.now()+rand(0,99999)}
+function getPoliceCount(){return G.police.filter(p=>p.active).length}
+function getThugCount(){return G.police.filter(p=>p.active&&p.isThug).length}
+function getBestUnit(){const u=G.police.filter(p=>p.active);if(u.length===0)return null;return u.reduce((a,b)=>a.skill>b.skill?a:b)}
+
+// ============================================================
+// 警察游戏核心
+// ============================================================
+function initGame(){
+    G.turn=0;G.budget=300;G.publicSat=60;G.govSat=70;G.crimeRate=8.5;
+    G.totalSolved=0;G.totalFailed=0;G.thugCount=0;G.lastSwatApply=-10;
+    G.police=[];G.cases=[];G.news=[];G.log=[];G.specialItems=[];
+    G.gameOver=false;G.phase='planning';G.eventLock=false;G._eventOptions={};
+    G.sniper=null;
+    for(let i=0;i<5;i++){addPolice('police','警察'+(i+1));}
+    for(let i=0;i<2;i++){addPolice('detective','警探'+(i+1));}
+    generateCases();updateUI();addLog('🚔 欢迎上任！');showPoliceView();
+}
+function addPolice(type,name,isThug=false){
+    const t=isThug?THUG:POLICE_TYPES[type];if(!t)return;
+    G.police.push({id:genId(),name:name||t.name+(G.police.filter(p=>p.active).length+1),type:type,skill:t.skill+rand(-1,1),equipment:[],cases_solved:0,cases_failed:0,active:true,salary:t.salary,isThug:isThug,loyalty:isThug?100:80});
+    if(isThug)G.thugCount++;
+}
+function generateCases(){
+    const count=rand(2,4);
+    for(let i=0;i<count;i++){
+        const types=['盗窃案','抢劫案','诈骗案','毒品案','绑架案','纵火案','走私案','恐怖威胁'];
+        const type=types[rand(0,types.length-1)];
+        const dists=['市中心','工业区','住宅区','商业区','郊区','港口区'];
+        const district=dists[rand(0,dists.length-1)];
+        const need=rand(2,6)+(G.turn>10?2:0);
+        const isDanger=G.turn>5&&rand(0,100)<30;
+        G.cases.push({id:genId(),type:type,district:district,need:Math.max(1,need),prio:isDanger?'high':(need>4?'mid':'low'),severity:isDanger?rand(3,5):rand(1,3),days:rand(2,4),solved:false,escalated:false,isDanger:isDanger,called:false,eventTriggered:false});
+    }
+    if(G.cases.length>10)G.cases=G.cases.slice(0,10);
+}
+function triggerEvent(caseId){
+    if(G.eventLock)return;const c=G.cases.find(c=>c.id===caseId);if(!c||c.solved||c.eventTriggered)return;
+    c.eventTriggered=true;G.eventLock=true;
+    const templates={
+        '抢劫案':{title:'🚨 嫌疑人持械抢劫！',desc:'地点: '+c.district+'，嫌疑人持有武器，市民正在逃窜。',
+            options:[{label:'🔫 使用 Motor gun（特殊物品）',cond:()=>G.specialItems.includes('Motor gun'),success:true,result:'嫌疑人被捕，无伤亡。',effect:()=>{G.publicSat+=3;G.govSat+=2;}},
+            {label:'🎯 命令狙击手',cond:()=>G.sniper&&G.sniper.active,success:true,result:'狙击手击毙嫌疑人，现场控制。',effect:()=>{G.publicSat+=1;G.govSat+=2;}},
+            {label:'👮 派遣警员强攻',cond:()=>true,success:()=>{const b=getBestUnit();return b&&b.skill>=c.need;},result:(s)=>s?'警员成功制服歹徒！':'警员受伤，嫌疑人逃脱！',effect:(s)=>{if(s){G.publicSat+=2;G.govSat+=1;}else{G.publicSat-=3;G.govSat-=2;G.totalFailed++;}}}]},
+        '绑架案':{title:'📞 绑匪来电！',desc:'人质在'+c.district+'，绑匪要求赎金，否则撕票。',
+            options:[{label:'💰 支付赎金 (消耗10万)',cond:()=>G.budget>=10,success:true,result:'人质安全获释，但支付了赎金。',effect:()=>{G.budget-=10;G.publicSat+=5;G.govSat+=1;}},
+            {label:'🎯 狙击手精确射击',cond:()=>G.sniper&&G.sniper.active,success:()=>Math.random()<0.8,result:(s)=>s?'狙击手击毙绑匪，人质安全！':'狙击手失误，人质受伤！',effect:(s)=>{if(s){G.publicSat+=4;G.govSat+=3;}else{G.publicSat-=3;G.govSat-=2;}}},
+            {label:'🕵️ 警探谈判',cond:()=>G.police.some(p=>p.active&&p.type==='detective'),success:()=>{const d=G.police.find(p=>p.active&&p.type==='detective');return d&&d.skill>=7;},result:(s)=>s?'谈判成功，人质获救！':'谈判破裂，人质受伤！',effect:(s)=>{if(s){G.publicSat+=5;G.govSat+=3;}else{G.publicSat-=4;G.govSat-=3;G.totalFailed++;}}}]},
+        '毒品案':{title:'💊 毒品交易现场',desc:'在'+c.district+'发现毒品交易，可能有武装人员。',
+            options:[{label:'🚁 无人机侦查 (消耗2万)',cond:()=>G.police.some(p=>p.active&&p.equipment.includes('drone'))&&G.budget>=2,success:()=>Math.random()<0.7,result:(s)=>s?'无人机精确定位，成功破获！':'无人机被击落，行动失败。',effect:(s)=>{if(s){G.budget-=2;G.publicSat+=3;G.govSat+=2;}else{G.publicSat-=2;G.govSat-=1;}}},
+            {label:'🔪 派遣打手（免费）',cond:()=>getThugCount()>0,success:()=>Math.random()<0.75,result:(s)=>s?'打手成功清除毒贩！':'打手被杀，案件恶化。',effect:(s)=>{if(s){G.crimeRate=Math.min(20,G.crimeRate+1);G.publicSat-=2;}else{G.crimeRate=Math.min(20,G.crimeRate+3);G.publicSat-=5;G.govSat-=2;G.totalFailed++;}}},
+            {label:'👮 常规警力',cond:()=>true,success:()=>{const b=getBestUnit();return b&&b.skill>=c.need;},result:(s)=>s?'警员成功抓获毒贩！':'警员受伤，毒贩逃脱。',effect:(s)=>{if(s){G.publicSat+=2;G.govSat+=1;}else{G.publicSat-=3;G.govSat-=2;G.totalFailed++;}}}]},
+        '纵火案':{title:'🔥 纵火事件',desc:c.district+'发生纵火，火势蔓延。',
+            options:[{label:'🚒 消防支援 (消耗3万)',cond:()=>G.budget>=3,success:true,result:'火势被扑灭，无人伤亡。',effect:()=>{G.budget-=3;G.publicSat+=4;G.govSat+=2;}},
+            {label:'👮 警员救火',cond:()=>true,success:()=>{const b=getBestUnit();return b&&b.skill>=6;},result:(s)=>s?'警员成功控制火势！':'警员受伤，火势扩大！',effect:(s)=>{if(s){G.publicSat+=3;G.govSat+=1;}else{G.publicSat-=4;G.govSat-=2;G.totalFailed++;}}}]},
+        '恐怖威胁':{title:'☠️ 恐怖袭击警告！',desc:'情报显示'+c.district+'可能遭受恐怖袭击。',
+            options:[{label:'🎯 狙击手预先部署',cond:()=>G.sniper&&G.sniper.active,success:()=>Math.random()<0.9,result:(s)=>s?'狙击手成功阻止袭击！':'袭击发生，伤亡惨重！',effect:(s)=>{if(s){G.publicSat+=6;G.govSat+=5;}else{G.publicSat-=8;G.govSat-=5;G.totalFailed++;}}},
+            {label:'🛸 无人机监控 (消耗3万)',cond:()=>G.police.some(p=>p.active&&p.equipment.includes('drone'))&&G.budget>=3,success:()=>Math.random()<0.7,result:(s)=>s?'无人机发现并阻止了袭击！':'无人机被摧毁，袭击发生。',effect:(s)=>{if(s){G.budget-=3;G.publicSat+=5;G.govSat+=4;}else{G.publicSat-=6;G.govSat-=4;G.totalFailed++;}}},
+            {label:'👮 全员戒备',cond:()=>true,success:()=>{const b=getBestUnit();return b&&b.skill>=9;},result:(s)=>s?'警员成功化解危机！':'警力不足，袭击发生！',effect:(s)=>{if(s){G.publicSat+=4;G.govSat+=3;}else{G.publicSat-=5;G.govSat-=4;G.totalFailed++;}}}]}
+    };
+    const def={title:'📞 紧急事件：'+c.type,desc:'在'+c.district+'发生'+c.type+'，需要处理。',
+        options:[{label:'👮 常规处理',cond:()=>true,success:()=>{const b=getBestUnit();return b&&b.skill>=c.need;},result:(s)=>s?'处理成功！':'处理失败，案件升级。',effect:(s)=>{if(s){G.publicSat+=2;G.govSat+=1;}else{G.publicSat-=3;G.govSat-=2;G.totalFailed++;}}}]};
+    const template=templates[c.type]||def;G._eventOptions[caseId]=template.options;
+    eventTitle.textContent=template.title;let html='<p style="font-size:10px;">'+template.desc+'</p><div style="margin:6px 0;">';
+    template.options.forEach((opt,idx)=>{const avail=typeof opt.cond==='function'?opt.cond():opt.cond;html+='<button class="opt" '+(avail?'':'style="opacity:0.4;"')+' onclick="resolveEvent('+caseId+','+idx+')" '+(avail?'':'disabled')+'>'+opt.label+' '+(avail?'✅':'❌')+'</button>';});
+    html+='</div>';eventContent.innerHTML=html;eventModal.classList.add('show');
+}
+function resolveEvent(caseId,optionIdx){
+    eventModal.classList.remove('show');const c=G.cases.find(c=>c.id===caseId);if(!c||c.solved){G.eventLock=false;return;}
+    const options=G._eventOptions[caseId];if(!options||!options[optionIdx]){G.eventLock=false;return;}
+    const opt=options[optionIdx];const success=typeof opt.success==='function'?opt.success():opt.success;
+    const resultMsg=typeof opt.result==='function'?opt.result(success):opt.result;const effect=opt.effect;
+    if(success){c.solved=true;G.totalSolved++;const pts=c.severity*2;G.budget+=pts;const b=getBestUnit();if(b){b.cases_solved++;b.skill=Math.min(20,b.skill+1);}G.crimeRate=Math.max(1,G.crimeRate-0.3);G.cases=G.cases.filter(c=>!c.solved);if(G.cases.length===0)generateCases();}
+    else{G.totalFailed++;c.days+=1;c.severity+=1;G.crimeRate=Math.min(20,G.crimeRate+0.5);c.eventTriggered=true;}
+    if(effect)effect(success);addLog('📞 '+resultMsg);G.eventLock=false;delete G._eventOptions[caseId];updateUI();renderMain();
+}
+function doRecruit(){
+    if(G.gameOver)return;let html='<div class="section-title">👮 招募</div><div style="font-size:8px;color:#7a8a9a;">预算: '+G.budget.toFixed(0)+' 万</div>';
+    Object.keys(POLICE_TYPES).forEach(key=>{if(key==='swat')return;const t=POLICE_TYPES[key];const can=G.budget>=t.cost;html+='<div class="opt" onclick="'+(can?'hirePolice(\''+key+'\')':'')+'" style="'+(can?'':'opacity:0.4;')+'">'+t.icon+' '+t.name+' 能力'+t.skill+' 薪资'+t.salary+'万 招募费'+t.cost+'万 '+(can?'✅':'❌')+'</div>';});
+    const canApply=G.turn-G.lastSwatApply>=2;const chance=Math.min(100,30+G.govSat*0.5);
+    html+='<div style="border-top:1px solid #2a3a5a;margin:4px 0;padding-top:4px;"><div style="font-size:8px;color:#e8c86a;">🔫 特警申请（每2周）</div><div style="font-size:7px;color:#7a8a9a;">政府满意度 '+G.govSat+'% → 成功率 '+Math.round(chance)+'%</div><button class="btn primary" onclick="applySWAT()" '+(canApply?'':'disabled')+'>'+(canApply?'📤 申请':'冷却中')+'</button></div>';
+    html+='<button class="btn" onclick="renderMain()">返回</button>';mainPolice.innerHTML=html;
+}
+function hirePolice(type){const t=POLICE_TYPES[type];if(G.budget<t.cost){addLog('❌ 预算不足');return;}G.budget-=t.cost;const names=['张伟','李强','王芳','刘洋','陈静','赵磊','周涛','吴雪','郑刚','孙莉'];const name=names[rand(0,names.length-1)]+(G.police.filter(p=>p.active).length+1);addPolice(type,name);addLog('✅ 招募 '+t.icon+' '+name+'，能力'+t.skill);updateUI();renderMain();}
+function applySWAT(){if(G.turn-G.lastSwatApply<2){addLog('⏳ 冷却中');return;}const chance=Math.min(100,30+G.govSat*0.5);const success=Math.random()*100<chance;G.lastSwatApply=G.turn;if(success){const name='特警·'+['雷霆','尖刀','猎鹰','战虎'][rand(0,3)];addPolice('swat',name);const p=G.police.find(p=>p.active&&p.name===name);if(p)p.skill+=2;addLog('🔫 特警 '+name+' 加入！能力'+(p?p.skill:0));G.govSat=Math.min(100,G.govSat+2);G.publicSat=Math.min(100,G.publicSat+1);}else{addLog('❌ 特警申请被拒（政府满意度'+G.govSat+'%）');G.govSat=Math.max(0,G.govSat-3);}updateUI();renderMain();}
+function hireThug(){if(G.gameOver)return;if(G.budget<THUG.cost){addLog('❌ 预算不足，需要6万');return;}G.budget-=THUG.cost;const names=['黑狼','毒蛇','铁手','灰鼠','夜枭'];const name=names[rand(0,names.length-1)]+(G.thugCount+1);addPolice('thug',name,true);G.crimeRate=Math.min(20,G.crimeRate+1.5);G.publicSat=Math.max(0,G.publicSat-4);addLog('🔪 雇佣打手 '+name+'，犯罪率+1.5%，市民满意度-4%');updateUI();renderMain();}
+function doEquip(){if(G.gameOver)return;let html='<div class="section-title">🔧 装备管理</div><div style="font-size:8px;color:#7a8a9a;">预算: '+G.budget.toFixed(0)+' 万</div>';
+    G.police.filter(p=>p.active).forEach(p=>{const hasEq=p.equipment.length;const tag=p.isThug?'🔪':'';html+='<div class="police-item" style="display:flex;justify-content:space-between;padding:3px 4px;background:rgba(0,0,0,0.2);margin:2px 0;border-radius:3px;"><span class="pname">'+tag+' '+p.name+' (能力'+p.skill+')</span><span style="font-size:7px;color:#7a8a9a;">装备'+hasEq+'件</span><button class="btn" style="font-size:6px;padding:1px 4px;min-width:20px;" onclick="assignEquip('+p.id+')">配装</button></div>';});
+    html+='<div class="section-title" style="margin-top:6px;">📦 可购买装备</div>';
+    EQUIPMENTS.forEach(e=>{const can=G.budget>=e.cost;html+='<div class="opt" style="font-size:8px;padding:4px;" onclick="'+(can?'buyEquip(\''+e.id+'\')':'')+'" style="'+(can?'':'opacity:0.4;')+'">'+e.icon+' '+e.name+' ('+e.cost+'万) +'+e.bonus+'能力 '+(can?'✅':'❌')+'</div>';});
+    html+='<button class="btn" onclick="renderMain()" style="margin-top:4px;">返回主界面</button>';mainPolice.innerHTML=html;
+}
+function buyEquip(eid){const eq=EQUIPMENTS.find(e=>e.id===eid);if(!eq||G.budget<eq.cost){addLog('❌ 预算不足');return;}G.budget-=eq.cost;const avail=G.police.filter(p=>p.active&&p.equipment.length<3);if(avail.length===0){addLog('❌ 没有警员可装备');return;}const target=avail[rand(0,avail.length-1)];target.equipment.push(eq.id);target.skill+=eq.bonus;addLog('🔧 '+target.name+' 获得 '+eq.name+'，能力+'+eq.bonus);updateUI();doEquip();}
+function assignEquip(pid){const p=G.police.find(p=>p.id===pid);if(!p||!p.active)return;let html='<div style="font-size:8px;">为 '+p.name+' 分配装备</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;">';
+    const available=EQUIPMENTS.filter(e=>!p.equipment.includes(e.id));
+    if(available.length===0)html+='<span style="font-size:7px;color:#7a8a9a;">已装备满</span>';
+    else available.forEach(e=>{html+='<button class="btn" style="font-size:7px;padding:2px 6px;min-width:30px;" onclick="giveEquip('+p.id+',\''+e.id+'\')">'+e.icon+' '+e.name+'</button>';});
+    html+='</div><button class="btn" onclick="doEquip()">返回装备列表</button>';
+    mainPolice.innerHTML=html;
+}
+function giveEquip(pid,eid){const p=G.police.find(p=>p.id===pid);const eq=EQUIPMENTS.find(e=>e.id===eid);if(!p||!eq)return;if(p.equipment.includes(eid)){addLog('❌ 已装备');return;}p.equipment.push(eid);p.skill+=eq.bonus;addLog('✅ '+p.name+' 装备 '+eq.name);updateUI();assignEquip(pid);}
+function showAdvisor(){if(G.gameOver)return;const active=G.police.filter(p=>p.active);const normal=active.filter(p=>!p.isThug);const thugs=active.filter(p=>p.isThug);const best=active.length?active.reduce((a,b)=>a.skill>b.skill?a:b):null;const total=G.totalSolved+G.totalFailed;let html='<div class="section-title">📊 顾问报告</div><div style="font-size:8px;color:#b0c0d0;line-height:1.6;">';
+    html+='<div>👮 总警力: '+active.length+' (警察'+normal.length+' 打手'+thugs.length+')</div>';html+='<div>🏆 最强: '+(best?(best.isThug?'🔪':'')+' '+best.name+' (能力'+best.skill+')':'无')+'</div>';
+    html+='<div>✅ 成功: '+G.totalSolved+' | ❌ 失败: '+G.totalFailed+'</div>';html+='<div>📈 破案率: '+(total>0?Math.round(G.totalSolved/total*100):0)+'%</div>';
+    html+='<div>😊 民众满意度: '+G.publicSat+'%</div>';html+='<div>🏛️ 政府满意度: '+G.govSat+'%</div>';html+='<div>📊 犯罪率: '+G.crimeRate.toFixed(1)+'%</div>';
+    html+='<div style="border-top:1px solid #1a2a3a;padding-top:4px;">📋 警员详情</div>';
+    active.slice(0,8).forEach(p=>{const tag=p.isThug?'🔪':(POLICE_TYPES[p.type]?.icon||'👮');html+='<div style="font-size:7px;color:#7a8a9a;">'+tag+' '+p.name+' 能力'+p.skill+' 装备'+p.equipment.length+'件 成功'+p.cases_solved+' 失败'+p.cases_failed+'</div>';});
+    if(active.length>8)html+='<div style="font-size:7px;color:#5a6a7a;">...还有'+(active.length-8)+'人</div>';
+    if(G.sniper&&G.sniper.active){html+='<div style="color:#e8c86a;margin-top:4px;">🎯 狙击手 '+G.sniper.name+' (第'+G.sniper.joinWeek+'周加入，第'+G.sniper.leaveWeek+'周离队)</div>';}
+    html+='</div><button class="btn" onclick="renderMain()">返回</button>';mainPolice.innerHTML=html;
+}
+function showNews(){if(G.gameOver)return;let html='<div class="section-title">📰 新闻动态</div>';if(G.news.length===0)html+='<div style="font-size:8px;color:#7a8a9a;padding:6px;">暂无新闻</div>';else{G.news.slice().reverse().forEach(n=>{const color=n.type==='good'?'#5a8a5a':(n.type==='bad'?'#8a5a5a':'#8a8a5a');html+='<div class="news-item" style="border-left-color:'+color+';"><span style="color:#8a9aaa;">第'+n.week+'周</span> '+n.text+'</div>';});}html+='<button class="btn" onclick="renderMain()">返回</button>';mainPolice.innerHTML=html;}
+function generateNews(){const types=['good','bad','neutral'];const msgs=[{good:'市民对治安表示满意',bad:'市民对治安表示担忧',neutral:'市政府召开安全会议'},{good:'警局破获重大案件',bad:'连环案件引发恐慌',neutral:'警局收到匿名举报'},{good:'警员英勇表现获嘉奖',bad:'警员渎职被举报',neutral:'预算调整方案提交'},{good:'社区安全指数上升',bad:'帮派活动频繁',neutral:'新装备采购完成'}];G.weekNews=[];for(let i=0;i<3;i++){const idx=rand(0,msgs.length-1);const type=types[rand(0,2)];const msg=msgs[idx][type]||msgs[idx]['neutral'];G.weekNews.push({week:G.turn,text:msg,type:type});G.news.push({week:G.turn,text:msg,type:type});if(type==='good'){G.publicSat=Math.min(100,G.publicSat+2);G.govSat=Math.min(100,G.govSat+1);}else if(type==='bad'){G.publicSat=Math.max(0,G.publicSat-3);G.govSat=Math.max(0,G.govSat-2);}}if(G.news.length>30)G.news=G.news.slice(-30);addLog('📰 新闻更新');}
+function initSniper(){if(G.turn===2&&!G.sniper){G.sniper={name:'代号·鹰眼',active:true,joinWeek:2,leaveWeek:40};addLog('🎯 狙击手「鹰眼」加入！');}if(G.sniper&&G.turn===40){G.sniper.active=false;addLog('🎯 狙击手「鹰眼」离队');}}
+function endTurn(){
+    if(G.gameOver)return;if(G.eventLock){addLog('⚠️ 请先处理当前事件');return;}G.turn++;initSniper();
+    G.cases.forEach(c=>{if(!c.solved){c.days--;if(c.days<=0){G.publicSat=Math.max(0,G.publicSat-4);G.govSat=Math.max(0,G.govSat-3);G.totalFailed++;addLog('⏰ '+c.type+' 超时！满意度下降');c.days=2;if(c.isDanger&&!c.eventTriggered&&rand(0,100)<40)triggerEvent(c.id);}}});
+    if(G.cases.length<3)generateCases();
+    const danger=G.cases.filter(c=>c.isDanger&&!c.solved&&!c.eventTriggered&&G.turn>3);
+    if(danger.length>0&&rand(0,100)<25)triggerEvent(danger[rand(0,danger.length-1)].id);
+    if(G.turn%5===0)generateNews();
+    G.publicSat=clamp(G.publicSat+rand(-2,2),0,100);G.govSat=clamp(G.govSat+rand(-1,2),0,100);G.crimeRate=clamp(G.crimeRate+rand(-0.5,0.5),1,20);
+    const income=8+G.totalSolved;G.budget+=income;const salary=G.police.filter(p=>p.active).reduce((s,p)=>s+p.salary,0);G.budget-=salary;G.budget=Math.max(0,G.budget);
+    if(G.publicSat<30&&getThugCount()>=10&&G.govSat<40){G.gameOver=true;addLog('💔 市民举报你雇佣大量打手，政府不满，你被免职！');endGame();return;}
+    if(G.turn>=G.maxTurns){endGame();return;}
+    G.eventLock=false;G.phase='planning';G.cases=G.cases.filter(c=>!c.solved);if(G.cases.length===0)generateCases();addLog('📅 第'+G.turn+'周结束，收入'+income.toFixed(0)+'万，支出'+salary.toFixed(1)+'万');updateUI();renderMain();
+}
+function handleCase(caseId){const c=G.cases.find(c=>c.id===caseId);if(!c||c.solved)return;if(c.isDanger&&!c.eventTriggered){triggerEvent(caseId);return;}const b=getBestUnit();if(!b){addLog('❌ 无可用单位');return;}const success=b.skill>=c.need*0.7;if(success){c.solved=true;G.totalSolved++;b.cases_solved++;const pts=c.severity*2;G.budget+=pts;G.publicSat=Math.min(100,G.publicSat+2);G.govSat=Math.min(100,G.govSat+1);G.crimeRate=Math.max(1,G.crimeRate-0.3);G.cases=G.cases.filter(c=>!c.solved);if(G.cases.length===0)generateCases();addLog('✅ '+b.name+' 破获 '+c.type+'！+'+pts+'万');}else{c.days-=1;G.totalFailed++;b.cases_failed++;G.publicSat=Math.max(0,G.publicSat-2);G.crimeRate=Math.min(20,G.crimeRate+0.5);addLog('❌ '+b.name+' 未能破获 '+c.type);}updateUI();renderMain();}
+function endGame(){if(G.gameOver)return;G.gameOver=true;const total=G.totalSolved+G.totalFailed;const rate=total>0?G.totalSolved/total:0;const score=(G.publicSat*0.4+G.govSat*0.3+rate*100*0.2+Math.min(G.budget/5,20)*0.1);const crimePenalty=Math.max(0,(G.crimeRate-5)*2);const finalScore=Math.max(0,score-crimePenalty);let title,result;if(finalScore>=80&&G.publicSat>75&&G.govSat>70&&G.crimeRate<6){title='🏆 卓越局长！';result='城市治安显著改善，政府与市民高度信任！';}else if(finalScore>=60){title='⭐ 优秀局长';result='城市治安稳步提升，您的努力得到认可。';}else if(finalScore>=40){title='⭐ 合格局长';result='治安有所改善，但仍需加倍努力。';}else{title='💔 被免职';result='城市治安恶化，您被市民和政府罢免。';}
+resultTitle.textContent=title;resultContent.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:6px 0;font-size:10px;"><div>😊 民众: '+G.publicSat+'%</div><div>🏛️ 政府: '+G.govSat+'%</div><div>📊 犯罪率: '+G.crimeRate.toFixed(1)+'%</div><div>✅ 成功: '+G.totalSolved+'</div><div>❌ 失败: '+G.totalFailed+'</div><div>📈 破案率: '+Math.round(rate*100)+'%</div><div>💰 预算: '+G.budget.toFixed(0)+'万</div><div>👮 警力: '+G.police.filter(p=>p.active).length+'</div></div><p style="text-align:center;font-size:12px;">'+result+'</p>';resultModal.classList.add('show');}
+function updateUI(){turnNum.textContent=G.turn;budgetVal.textContent=G.budget.toFixed(0);policeVal.textContent=G.police.filter(p=>p.active).length;publicSat.textContent=G.publicSat+'%';govSat.textContent=G.govSat+'%';crimeRateVal.textContent=G.crimeRate.toFixed(1)+'%';}
+function renderMain(){if(G.gameOver)return;let html='';const unsolved=G.cases.filter(c=>!c.solved);html+='<div class="section-title">📋 待处理 ('+unsolved.length+')</div>';
+    if(unsolved.length===0)html+='<div style="font-size:8px;color:#5a7a6a;padding:3px 0;">✅ 本周无案件</div>';
+    else{unsolved.forEach(c=>{const prioClass=c.prio==='high'?'prio-high':(c.prio==='mid'?'prio-mid':'prio-low');const isDanger=c.isDanger?'☎️':'';html+='<div class="case-item '+prioClass+'"><span class="name">'+isDanger+' '+c.type+'</span><span class="info">'+c.district+' | 需'+c.need+'人 | '+c.days+'天</span><button class="btn" style="font-size:6px;padding:1px 4px;min-width:24px;" onclick="handleCase('+c.id+')">'+(c.isDanger&&!c.eventTriggered?'📞':'破案')+'</button></div>';});}
+    html+='<div class="section-title">⚡ 快捷操作</div><div class="btn-row"><button class="btn primary" onclick="doRecruit()">👮 招募</button><button class="btn success" onclick="doEquip()">🔧 装备</button><button class="btn warning" onclick="showAdvisor()">📊 顾问</button><button class="btn" onclick="showNews()">📰 新闻</button><button class="btn" onclick="hireThug()">🔪 雇佣</button></div>';
+    if(G.sniper&&G.sniper.active)html+='<div style="font-size:7px;color:#e8c86a;">🎯 狙击手 '+G.sniper.name+' 已就位</div>';
+    mainPolice.innerHTML=html;}
+function renderLog(){const last=G.log.slice(-1)[0]||'🚔 选择行动';log.textContent=last;}
+function addLog(msg){G.log.push('['+G.turn+'] '+msg);if(G.log.length>50)G.log.shift();renderLog();}
+function showPoliceView(){mainPolice.style.display='flex';snakeContainer.style.display='none';duckContainer.style.display='none';creditsContainer.style.display='none';G.view='police';renderMain();}
+// 小游戏和视图切换在第二段
+</script><script>
+// ============================================================
+// 第二段：贪吃蛇、打鸭子、员工名单、视图切换、菜单启动
+// ============================================================
+
+// ---------- 贪吃蛇 ----------
+let snake={score:0,snakeArr:[],food:{x:0,y:0},dir:'right',nextDir:'right',gameRunning:false,interval:null};
+const canvasSnake=$('snake-canvas');const ctxSnake=canvasSnake.getContext('2d');const snakeScore=$('snakeScore');
+function startSnake(){window._snakeStarted=true;snake.score=0;snake.snakeArr=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];snake.dir='right';snake.nextDir='right';snake.gameRunning=true;generateFoodSnake();snakeScore.textContent=0;if(snake.interval)clearInterval(snake.interval);snake.interval=setInterval(updateSnake,150);drawSnake();}
+function generateFoodSnake(){const maxX=19,maxY=19;let pos;do{pos={x:rand(0,maxX),y:rand(0,maxY)};}while(snake.snakeArr.some(s=>s.x===pos.x&&s.y===pos.y));snake.food=pos;}
+function updateSnake(){if(!snake.gameRunning)return;const head={...snake.snakeArr[0]};snake.dir=snake.nextDir;switch(snake.dir){case 'up':head.y--;break;case 'down':head.y++;break;case 'left':head.x--;break;case 'right':head.x++;break;}
+if(head.x<0||head.x>19||head.y<0||head.y>19||snake.snakeArr.some(s=>s.x===head.x&&s.y===head.y)){snake.gameRunning=false;if(snake.interval)clearInterval(snake.interval);addLog('🐍 贪吃蛇结束！得分 '+snake.score);drawSnake();return;}
+snake.snakeArr.unshift(head);if(head.x===snake.food.x&&head.y===snake.food.y){snake.score++;snakeScore.textContent=snake.score;generateFoodSnake();}else{snake.snakeArr.pop();}drawSnake();}
+function drawSnake(){ctxSnake.fillStyle='#1a2a3a';ctxSnake.fillRect(0,0,400,400);ctxSnake.strokeStyle='#2a4a6a';ctxSnake.lineWidth=0.5;for(let i=0;i<20;i++){ctxSnake.beginPath();ctxSnake.moveTo(i*20,0);ctxSnake.lineTo(i*20,400);ctxSnake.stroke();ctxSnake.beginPath();ctxSnake.moveTo(0,i*20);ctxSnake.lineTo(400,i*20);ctxSnake.stroke();}
+ctxSnake.fillStyle='#ff6b6b';ctxSnake.beginPath();ctxSnake.arc(snake.food.x*20+10,snake.food.y*20+10,8,0,Math.PI*2);ctxSnake.fill();
+snake.snakeArr.forEach((s,i)=>{const ratio=1-i/snake.snakeArr.length*0.4;ctxSnake.fillStyle='rgba(90,200,120,'+ratio+')';ctxSnake.beginPath();ctxSnake.roundRect(s.x*20+2,s.y*20+2,16,16,3);ctxSnake.fill();});
+if(!snake.gameRunning){ctxSnake.fillStyle='rgba(0,0,0,0.5)';ctxSnake.fillRect(0,0,400,400);ctxSnake.fillStyle='#e8c86a';ctxSnake.font='20px monospace';ctxSnake.textAlign='center';ctxSnake.fillText('游戏结束',200,200);ctxSnake.font='14px monospace';ctxSnake.fillText('点击↺重玩',200,230);}}
+CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){if(r>w/2)r=w/2;if(r>h/2)r=h/2;this.moveTo(x+r,y);this.lineTo(x+w-r,y);this.quadraticCurveTo(x+w,y,x+w,y+r);this.lineTo(x+w,y+h-r);this.quadraticCurveTo(x+w,y+h,x+w-r,y+h);this.lineTo(x+r,y+h);this.quadraticCurveTo(x,y+h,x,y+h-r);this.lineTo(x,y+r);this.quadraticCurveTo(x,y,x+r,y);this.closePath();return this;};
+document.getElementById('snakeUp').onclick=()=>{if(snake.dir!=='down')snake.nextDir='up';};
+document.getElementById('snakeDown').onclick=()=>{if(snake.dir!=='up')snake.nextDir='down';};
+document.getElementById('snakeLeft').onclick=()=>{if(snake.dir!=='right')snake.nextDir='left';};
+document.getElementById('snakeRight').onclick=()=>{if(snake.dir!=='left')snake.nextDir='right';};
+document.getElementById('snakeRestart').onclick=()=>{if(snake.interval)clearInterval(snake.interval);startSnake();};
+document.getElementById('snakeBack').onclick=()=>{if(snake.interval){clearInterval(snake.interval);snake.interval=null;}showPoliceView();};
+
+// ---------- 打鸭子 ----------
+let duck={score:0,gameRunning:false,ducks:[],timer:30,interval:null,spawnInterval:null};
+const canvasDuck=$('duck-canvas');const ctxDuck=canvasDuck.getContext('2d');const duckScore=$('duckScore');const duckTimer=$('duckTimer');
+function initDuck(){duck.score=0;duck.ducks=[];duck.gameRunning=false;duck.timer=30;duckScore.textContent='0';duckTimer.textContent='30';drawDuck();}
+function startDuck(){if(duck.gameRunning)return;duck.gameRunning=true;duck.score=0;duck.ducks=[];duck.timer=30;duckScore.textContent='0';duckTimer.textContent='30';clearInterval(duck.interval);clearInterval(duck.spawnInterval);duck.interval=setInterval(updateDuckTimer,1000);duck.spawnInterval=setInterval(spawnDuck,1500);for(let i=0;i<3;i++)setTimeout(spawnDuck, i*500);drawDuck();}
+function spawnDuck(){if(!duck.gameRunning)return;const x=rand(20,560);const y=rand(20,350);const vx=(rand(0,1)?1:-1)*rand(1,3);const vy=(rand(0,1)?1:-1)*rand(1,2);duck.ducks.push({x:x,y:y,vx:vx,vy:vy,radius:20,alive:true});}
+function updateDuckTimer(){if(!duck.gameRunning)return;duck.timer--;duckTimer.textContent=duck.timer;if(duck.timer<=0){duck.gameRunning=false;clearInterval(duck.interval);clearInterval(duck.spawnInterval);addLog('🦆 打鸭子结束！得分 '+duck.score);drawDuck();}}
+function drawDuck(){ctxDuck.clearRect(0,0,600,400);ctxDuck.fillStyle='#1a3a2a';ctxDuck.fillRect(0,0,600,400);
+if(duck.gameRunning){duck.ducks.forEach(d=>{if(!d.alive)return;ctxDuck.fillStyle='#e8c86a';ctxDuck.beginPath();ctxDuck.arc(d.x,d.y,d.radius,0,Math.PI*2);ctxDuck.fill();ctxDuck.fillStyle='#d45a2a';ctxDuck.beginPath();ctxDuck.arc(d.x-8,d.y-6,4,0,Math.PI*2);ctxDuck.fill();ctxDuck.beginPath();ctxDuck.arc(d.x+8,d.y-6,4,0,Math.PI*2);ctxDuck.fill();ctxDuck.fillStyle='#2a2a2a';ctxDuck.beginPath();ctxDuck.arc(d.x-6,d.y-8,2,0,Math.PI*2);ctxDuck.fill();ctxDuck.beginPath();ctxDuck.arc(d.x+10,d.y-8,2,0,Math.PI*2);ctxDuck.fill();});}else{ctxDuck.fillStyle='#6a8a6a';ctxDuck.font='20px monospace';ctxDuck.textAlign='center';ctxDuck.fillText('点击「开始」打鸭子',300,200);}}
+function moveDucks(){if(!duck.gameRunning)return;duck.ducks.forEach(d=>{if(!d.alive)return;d.x+=d.vx;d.y+=d.vy;if(d.x<10||d.x>590)d.vx=-d.vx;if(d.y<10||d.y>390)d.vy=-d.vy;});drawDuck();}
+function shootDuck(e){if(!duck.gameRunning)return;const rect=canvasDuck.getBoundingClientRect();const scaleX=canvasDuck.width/rect.width;const scaleY=canvasDuck.height/rect.height;const x=(e.clientX-rect.left)*scaleX;const y=(e.clientY-rect.top)*scaleY;let hit=false;duck.ducks.forEach(d=>{if(!d.alive)return;const dx=x-d.x,dy=y-d.y;if(dx*dx+dy*dy<d.radius*d.radius){d.alive=false;duck.score++;duckScore.textContent=duck.score;hit=true;}});if(hit){addLog('🦆 打中鸭子！+1分');}else{addLog('💨 没打中');}moveDucks();}
+canvasDuck.addEventListener('click',shootDuck);
+document.getElementById('duckStart').onclick=startDuck;
+document.getElementById('duckRestart').onclick=()=>{clearInterval(duck.interval);clearInterval(duck.spawnInterval);duck.gameRunning=false;initDuck();startDuck();};
+document.getElementById('duckBack').onclick=()=>{clearInterval(duck.interval);clearInterval(duck.spawnInterval);duck.gameRunning=false;showPoliceView();};
+initDuck();
+
+// ---------- 员工名单 ----------
+function showCredits() {
+    const models = ['DeepSeek-V2','DeepSeek-V3','DeepSeek-R1','DeepSeek-Chat','DeepSeek-Coder','DeepSeek-Math','DeepSeek-VL','DeepSeek-6B','DeepSeek-67B','DeepSeek-1.3B','DeepSeek-7B','DeepSeek-14B'];
+    const list = document.getElementById('creditsList');
+    list.innerHTML = '<div class="item" style="border-bottom:none;color:#7a8a9a;font-size:10px;">— 模型团队 —</div>';
+    models.forEach(m => {
+        const div = document.createElement('div'); div.className = 'item';
+        div.innerHTML = `<span class="model">${m}</span>  ·  DeepSeek 团队`;
+        list.appendChild(div);
+    });
+    const footer = document.createElement('div'); footer.className = 'item';
+    footer.style.borderBottom = 'none'; footer.style.color = '#5a6a7a'; footer.style.fontSize = '9px';
+    footer.textContent = '感谢 DeepSeek 提供技术支持';
+    list.appendChild(footer);
+    mainPolice.style.display='none';snakeContainer.style.display='none';duckContainer.style.display='none';creditsContainer.style.display='flex';
+}
+document.getElementById('creditsBack').onclick=showPoliceView;
+
+// ---------- 视图切换 ----------
+function showSnakeView(){mainPolice.style.display='none';snakeContainer.style.display='flex';duckContainer.style.display='none';creditsContainer.style.display='none';if(!window._snakeStarted)startSnake();}
+function showDuckView(){mainPolice.style.display='none';snakeContainer.style.display='none';duckContainer.style.display='flex';creditsContainer.style.display='none';}
+function showPoliceView(){mainPolice.style.display='flex';snakeContainer.style.display='none';duckContainer.style.display='none';creditsContainer.style.display='none';renderMain();}
+
+// ---------- 按钮绑定 ----------
+btnSnake.onclick=()=>{if(G.gameOver)return;showSnakeView();};
+btnDuck.onclick=()=>{if(G.gameOver)return;showDuckView();};
+btnCredits.onclick=showCredits;
+btnRecruit.onclick=doRecruit;
+btnEquip.onclick=doEquip;
+btnAdvisor.onclick=showAdvisor;
+btnNews.onclick=showNews;
+btnHireThug.onclick=hireThug;
+btnEndTurn.onclick=()=>{if(G.gameOver)return;endTurn();showPoliceView();};
+
+// ---------- 菜单和启动 ----------
+function renderMenu() {
+    document.getElementById('menuOptions').innerHTML = `
+        <div style="padding:6px 0;font-size:10px;color:#b0c0d0;text-align:center;">
+            🎯 50周内提升治安<br>
+            👮 招募警员 · 分配装备 · 处理案件<br>
+            📞 凶险案件需电话抉择<br>
+            🎯 狙击手第2周加入，第40周离队<br>
+            📰 每5周新闻更新<br>
+            🔫 特警需申请，每2周一次<br>
+            🔪 打手能力强但提升犯罪率<br>
+            🐍 贪吃蛇 · 🦆 打鸭子 · 🎬 制作组
+        </div>
+    `;
+}
+document.getElementById('startBtn').onclick = function() {
+    document.getElementById('menuModal').classList.remove('show');
+    initGame();
+    showPoliceView();
+};
+function closeResult(){resultModal.classList.remove('show');menuModal.classList.add('show');renderMenu();}
+function restartGame(){resultModal.classList.remove('show');initGame();showPoliceView();}
+window.onload = function() { renderMenu(); document.getElementById('menuModal').classList.add('show'); };
+</script>
+</body>
+</html>

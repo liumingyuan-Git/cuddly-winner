@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>外交风云：利益与共识 - 模拟外交谈判游戏</title>
+    <style>
+        :root {
+            --bg-dark: #0f1724;
+            --bg-card: #1a2740;
+            --bg-card-light: #24344f;
+            --gold: #c9a84c;
+            --gold-light: #e8c96a;
+            --gold-dark: #a8892e;
+            --text-primary: #f0e9d8;
+            --text-secondary: #b8c4d0;
+            --text-muted: #7a8a9a;
+            --blue: #3b82f6;
+            --green: #22c55e;
+            --red: #ef4444;
+            --orange: #f97316;
+            --purple: #a855f7;
+            --cyan: #06b6d4;
+            --border: #2e4055;
+            --border-light: #3d5270;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --radius-xs: 6px;
+            --font: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(ellipse at 20% 20%, rgba(201, 168, 76, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 50%, rgba(26, 39, 64, 0.5) 0%, transparent 70%);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            min-height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .app-header {
+            text-align: center;
+            padding: 24px 20px 16px;
+            background: linear-gradient(145deg, rgba(26, 39, 64, 0.9), rgba(15, 23, 36, 0.95));
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .app-header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--gold), var(--gold-light), var(--gold), transparent);
+        }
+        .app-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold), #f5e6b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+        .app-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            letter-spacing: 4px;
+            font-weight: 300;
+        }.tab-nav {
+    display: flex;
+    gap: 6px;
+    background: rgba(26, 39, 64, 0.7);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+.tab-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-xs);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    letter-spacing: 1px;
+    font-family: var(--font);
+    position: relative;
+}
+.tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+.tab-btn.active {
+    background: linear-gradient(135deg, rgba(201, 168, 76, 0.2), rgba(201, 168, 76, 0.1));
+    color: var(--gold-light);
+    border: 1px solid rgba(201, 168, 76, 0.3);
+    box-shadow: 0 0 20px rgba(201, 168, 76, 0.1);
+}
+.tab-btn .tab-icon {
+    display: block;
+    font-size: 1.3rem;
+    margin-bottom: 4px;
+}
+.tab-btn .tab-label {
+    display: block;
+    font-size: 0.8rem;
+}
+
+.panel {
+    display: none;
+    animation: fadeIn 0.4s ease;
+}
+.panel.active {
+    display: block;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.panel-card {
+    background: linear-gradient(145deg, rgba(26, 39, 64, 0.92), rgba(15, 23, 36, 0.95));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+}
+.panel-card h2 {
+    font-size: 1.4rem;
+    margin-bottom: 16px;
+    color: var(--gold-light);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: 1px;
+}
+.panel-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+}
+.panel-card p {
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.issue-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+}
+.issue-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 18px;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+.issue-card:hover {
+    border-color: var(--gold-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+.issue-card.selected {
+    border-color: var(--gold);
+    background: rgba(201, 168, 76, 0.08);
+    box-shadow: 0 0 30px rgba(201, 168, 76, 0.15);
+}
+.issue-card .issue-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+.issue-card h4 {
+    font-size: 1.05rem;
+    color: var(--gold-light);
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+.issue-card .issue-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 6px;
+}
+.issue-card .issue-goal {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    font-style: italic;
+}
+.issue-check {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: var(--bg-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: var(--transition);
+}
+.issue-card.selected .issue-check {
+    opacity: 1;
+    transform: scale(1);
+}.faction-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+}
+.faction-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 18px;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+}
+.faction-card:hover {
+    border-color: var(--gold-dark);
+    transform: translateY(-2px);
+}
+.faction-card.selected {
+    border-color: var(--faction-color, var(--gold));
+    box-shadow: 0 0 20px rgba(201, 168, 76, 0.1);
+}
+.faction-card .faction-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.faction-card .faction-icon {
+    font-size: 2rem;
+}
+.faction-card .faction-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.faction-card .faction-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+.faction-card .faction-details {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+.faction-card .faction-details li {
+    list-style: none;
+    padding: 2px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+.faction-card .faction-details li::before {
+    content: '•';
+    color: var(--faction-color, var(--gold));
+    font-weight: 700;
+}
+.faction-card .faction-bottom-line {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid var(--red);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #fca5a5;
+    line-height: 1.5;
+}
+.faction-card .faction-bottom-line strong {
+    color: var(--red);
+}
+
+.timer-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+}
+.timer-display {
+    font-size: 3rem;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    color: var(--gold-light);
+    letter-spacing: 3px;
+    min-width: 120px;
+    text-align: center;
+    text-shadow: 0 0 20px rgba(201, 168, 76, 0.3);
+}
+.timer-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.timer-btn {
+    padding: 10px 18px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-xs);
+    background: var(--bg-card-light);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: var(--font);
+    letter-spacing: 0.5px;
+}
+.timer-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--gold-dark);
+}
+.timer-btn.primary {
+    background: var(--gold);
+    color: var(--bg-dark);
+    border-color: var(--gold);
+    font-weight: 600;
+}
+.timer-btn.primary:hover {
+    background: var(--gold-light);
+    border-color: var(--gold-light);
+}
+.timer-btn.danger {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+.timer-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.3);
+    border-color: var(--red);
+}
+.timer-phase {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+}
+
+.step-progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 16px 0;
+    overflow-x: auto;
+    padding: 8px 0;
+}
+.step-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: var(--transition);
+    opacity: 0.6;
+}
+.step-item:hover {
+    opacity: 0.85;
+}
+.step-item.active {
+    opacity: 1;
+}
+.step-item.completed {
+    opacity: 0.9;
+}
+.step-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+.step-item.active .step-dot {
+    background: var(--gold);
+    color: var(--bg-dark);
+    border-color: var(--gold);
+    box-shadow: 0 0 20px rgba(201, 168, 76, 0.4);
+}
+.step-item.completed .step-dot {
+    background: var(--green);
+    color: white;
+    border-color: var(--green);
+}
+.step-name {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+}
+.step-line {
+    width: 30px;
+    height: 2px;
+    background: var(--border);
+    flex-shrink: 0;
+    margin: 0 4px;
+}
+.step-item.completed .step-line {
+    background: var(--green);
+}        .scoreboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .score-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            text-align: center;
+            transition: var(--transition);
+        }
+        .score-card .score-faction-name {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .score-card .score-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--gold-light);
+            letter-spacing: 1px;
+        }
+        .score-card .score-detail {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+        .score-card.winner {
+            border-color: var(--gold);
+            box-shadow: 0 0 30px rgba(201, 168, 76, 0.25);
+            background: rgba(201, 168, 76, 0.08);
+        }
+        .score-card.winner .score-value {
+            color: var(--gold-light);
+            text-shadow: 0 0 20px rgba(201, 168, 76, 0.5);
+        }
+
+        .vote-section {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 16px 0;
+        }
+        .vote-btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 16px 20px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font);
+            letter-spacing: 1px;
+            text-align: center;
+        }
+        .vote-btn:hover {
+            border-color: var(--gold-dark);
+            transform: translateY(-2px);
+        }
+        .vote-btn.approve {
+            border-color: rgba(34, 197, 94, 0.7);
+            background: rgba(34, 197, 94, 0.18);
+            color: #bbf7d0;
+        }
+        .vote-btn.reject {
+            border-color: rgba(239, 68, 68, 0.7);
+            background: rgba(239, 68, 68, 0.18);
+            color: #fecaca;
+        }
+        .vote-btn.voted {
+            box-shadow: 0 0 15px rgba(201, 168, 76, 0.2);
+            font-weight: 600;
+        }
+
+        .signing-area {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px dashed var(--gold-dark);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin: 16px 0;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .signature-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: rgba(201, 168, 76, 0.15);
+            border: 1px solid var(--gold-dark);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--gold-light);
+            letter-spacing: 1px;
+            animation: signIn 0.5s ease;
+        }
+        @keyframes signIn {
+            from { opacity: 0; transform: scale(0.7); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xs);
+            background: var(--bg-card-light);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font);
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--gold-dark);
+            transform: translateY(-1px);
+        }
+        .btn.primary {
+            background: var(--gold);
+            color: var(--bg-dark);
+            border-color: var(--gold);
+            font-weight: 600;
+        }
+        .btn.primary:hover {
+            background: var(--gold-light);
+            border-color: var(--gold-light);
+        }
+        .btn.success {
+            background: var(--green);
+            color: white;
+            border-color: var(--green);
+            font-weight: 600;
+        }
+        .btn.success:hover {
+            background: #16a34a;
+            border-color: #16a34a;
+        }
+        .btn.danger {
+            background: var(--red);
+            color: white;
+            border-color: var(--red);
+            font-weight: 600;
+        }
+        .btn.danger:hover {
+            background: #dc2626;
+            border-color: #dc2626;
+        }
+        .btn.small {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 12px 0;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(6px);
+            padding: 20px;
+        }
+        .modal-overlay.show {
+            display: flex;
+        }
+        .modal {
+            background: var(--bg-card);
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 28px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            animation: modalIn 0.3s ease;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal h3 {
+            color: var(--gold-light);
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+        }
+        .modal h4 {
+            color: var(--text-primary);
+            margin: 16px 0 8px;
+            font-size: 1rem;
+        }
+        .modal p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        .modal ul {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            padding-left: 24px;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+        .modal .close-btn {
+            float: right;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .modal .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .text-center { text-align: center; }
+        .text-muted { color: var(--text-muted); }
+        .text-gold { color: var(--gold-light); }
+        .mt-12 { margin-top: 12px; }
+        .mt-16 { margin-top: 16px; }
+        .mb-12 { margin-bottom: 12px; }
+        .gap-8 { gap: 8px; }
+        .flex-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+
+        @media (max-width: 768px) {
+            .app-title { font-size: 1.6rem; }
+            .app-subtitle { font-size: 0.8rem; letter-spacing: 2px; }
+            .panel-card { padding: 16px; }
+            .timer-display { font-size: 2.2rem; min-width: 80px; }
+            .tab-btn { min-width: 70px; padding: 8px 10px; font-size: 0.75rem; }
+            .tab-btn .tab-icon { font-size: 1.1rem; }
+            .faction-grid { grid-template-columns: 1fr; }
+            .issue-grid { grid-template-columns: 1fr; }
+            .scoreboard { grid-template-columns: repeat(2, 1fr); }
+            .step-name { font-size: 0.7rem; }
+            .step-dot { width: 28px; height: 28px; font-size: 0.7rem; }
+            .step-line { width: 15px; }
+        }
+        @media (max-width: 480px) {
+            body { padding: 8px; }
+            .app-container { gap: 10px; }
+            .panel-card { padding: 12px; border-radius: var(--radius-sm); }
+            .app-title { font-size: 1.3rem; letter-spacing: 1px; }
+            .timer-display { font-size: 1.8rem; min-width: 70px; letter-spacing: 1px; }
+            .btn { padding: 10px 16px; font-size: 0.85rem; }
+            .scoreboard { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .score-card .score-value { font-size: 1.8rem; }
+        }
+    </style>
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <div class="app-container" id="app">
+        <header class="app-header">
+            <div class="app-title">🌍 外交风云：利益与共识</div>
+            <div class="app-subtitle">模拟国际多边外交谈判 · 2026</div>
+        </header><nav class="tab-nav" id="tabNav">
+    <button class="tab-btn active" data-tab="setup">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">游戏设置</span>
+    </button>
+    <button class="tab-btn" data-tab="roles">
+        <span class="tab-icon">👥</span>
+        <span class="tab-label">角色阵营</span>
+    </button>
+    <button class="tab-btn" data-tab="flow">
+        <span class="tab-icon">🔄</span>
+        <span class="tab-label">谈判流程</span>
+    </button>
+    <button class="tab-btn" data-tab="score">
+        <span class="tab-icon">📊</span>
+        <span class="tab-label">计分投票</span>
+    </button>
+    <button class="tab-btn" data-tab="summary">
+        <span class="tab-icon">🏆</span>
+        <span class="tab-label">总结点评</span>
+    </button>
+</nav>
+
+<!-- SETUP PANEL -->
+<div class="panel active" id="panel-setup">
+    <div class="panel-card">
+        <h2>📋 谈判议题选择</h2>
+        <p>请选择本次模拟外交谈判的核心议题（3选1）：</p>
+        <div class="issue-grid" id="issueGrid"></div>
+    </div>
+    <div class="panel-card">
+        <h2>👥 阵营配置</h2>
+        <p>选择参与谈判的阵营（推荐4个阵营，可自由增减）：</p>
+        <div class="faction-grid" id="setupFactionGrid"></div>
+        <div class="btn-row mt-16">
+            <button class="btn primary" onclick="startGame()">🚀 开始游戏</button>
+            <button class="btn" onclick="resetAll()">🔄 重置设置</button>
+            <button class="btn" onclick="showRulesModal()">📖 完整规则介绍</button>
+        </div>
+    </div>
+    <div class="panel-card">
+        <h2>📖 游戏规则速览</h2>
+        <p><strong>🎯 核心目标：</strong>通过多边谈判达成共识协议，实现各自阵营利益最大化。</p>
+        <p><strong>⏱️ 时间安排：</strong>备战10分钟 → 立场陈述15分钟 → 多边谈判30分钟 → 提案投票15分钟 → 总结10分钟（总计约60-90分钟）。</p>
+        <p><strong>🗳️ 投票规则：</strong>最终提案需获得超过2/3阵营同意方可通过，否则谈判破裂。</p>
+        <p><strong>⚠️ 底线原则：</strong>任何阵营不得突破自身身份卡标注的谈判底线，否则直接扣除全部得分。</p>
+        <p><a href="#" onclick="showRulesModal();return false;" style="color:var(--gold-light);text-decoration:underline;">查看完整规则介绍 →</a></p>
+    </div>
+</div>
+
+<!-- ROLES PANEL -->
+<div class="panel" id="panel-roles">
+    <div class="panel-card">
+        <h2>👥 阵营身份卡</h2>
+        <p>点击各阵营卡片可查看详细身份信息。主持人可引导玩家私下查看自己的身份卡，<strong>底线信息不可向其他阵营透露</strong>。</p>
+        <div class="faction-grid" id="roleFactionGrid"></div>
+    </div>
+    <div class="panel-card">
+        <h2>🎲 随机分配角色</h2>
+        <p>如需随机分配阵营，可设置玩家数量并点击分配：</p>
+        <div class="flex-wrap gap-8 mt-12">
+            <input type="number" id="playerCount" min="4" max="12" value="4" style="padding:10px 16px;border:1px solid var(--border-light);border-radius:var(--radius-xs);background:var(--bg-card);color:var(--text-primary);font-size:1rem;width:100px;font-family:var(--font);">
+            <button class="btn primary" onclick="randomAssign()">🎲 随机分配</button>
+            <button class="btn" onclick="showAssignment()">👀 查看分配结果</button>
+        </div>
+        <div id="assignmentResult" class="mt-12"></div>
+    </div>
+</div>    <!-- FLOW PANEL -->
+    <div class="panel" id="panel-flow">
+        <div class="panel-card">
+            <h2>🔄 谈判流程控制</h2>
+            <p>主持人和各阵营代表可按以下步骤推进谈判。点击步骤可切换当前环节。</p>
+            <div class="step-progress" id="stepProgress"></div>
+            <div id="stepDetail" class="mt-12"></div>
+        </div>
+        <div class="panel-card">
+            <h2>⏱️ 环节计时器</h2>
+            <div class="timer-section">
+                <div class="timer-display" id="timerDisplay">10:00</div>
+                <div style="flex:1;min-width:200px;">
+                    <div class="timer-phase" id="timerPhase">当前环节：角色分配与备战</div>
+                    <div class="timer-controls mt-12">
+                        <button class="timer-btn primary" id="timerStartBtn" onclick="startTimer()">▶ 开始</button>
+                        <button class="timer-btn" onclick="pauseTimer()">⏸ 暂停</button>
+                        <button class="timer-btn" onclick="resetTimer()">↺ 重置</button>
+                        <button class="timer-btn danger" onclick="skipTimer()">⏭ 跳过</button>
+                    </div>
+                </div>
+            </div>
+            <div class="btn-row mt-12">
+                <button class="btn" onclick="prevStep()">⬅ 上一步</button>
+                <button class="btn primary" onclick="nextStep()">下一步 ➡</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCORE PANEL -->
+    <div class="panel" id="panel-score">
+        <div class="panel-card">
+            <h2>📊 利益计分牌</h2>
+            <p>根据各阵营在谈判中的表现进行计分。基础分10分（谈判成功），核心诉求每条+3分，合理妥协每条+1分。</p>
+            <div class="scoreboard" id="scoreboard"></div>
+        </div>
+        <div class="panel-card">
+            <h2>📝 核心诉求与妥协记录</h2>
+            <p>为每个阵营勾选已实现的核心诉求和做出的合理妥协：</p>
+            <div id="scoreDetailArea" class="mt-12"></div>
+            <button class="btn success mt-12" onclick="calculateScores()">🧮 重新计算总分</button>
+        </div>
+        <div class="panel-card">
+            <h2>🗳️ 最终提案投票</h2>
+            <p>各阵营对最终草案进行投票表决。需超过2/3阵营同意方可通过。</p>
+            <div class="vote-section" id="voteSection"></div>
+            <div id="voteResult" class="mt-12"></div>
+            <div class="btn-row mt-12">
+                <button class="btn primary" onclick="conductVote()">📮 提交投票</button>
+                <button class="btn" onclick="resetVote()">🔄 重置投票</button>
+            </div>
+        </div>
+        <div class="panel-card">
+            <h2>✍️ 协议签署</h2>
+            <p>投票通过后，各阵营代表在协议上签字确认：</p>
+            <div class="signing-area" id="signingArea">
+                <span class="text-muted">投票通过后，各阵营可在此签署协议</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUMMARY PANEL -->
+    <div class="panel" id="panel-summary">
+        <div class="panel-card">
+            <h2>🏆 谈判结果与排名</h2>
+            <div id="finalResult" class="mt-12"></div>
+        </div>
+        <div class="panel-card">
+            <h2>📝 主持人点评要点</h2>
+            <p>1. <strong>谈判技巧：</strong>观察各阵营是否有效利用自身优势（资金、资源、话语权）进行博弈？</p>
+            <p>2. <strong>利益权衡：</strong>各阵营在核心利益与妥协让步之间是否找到了平衡点？</p>
+            <p>3. <strong>外交礼仪：</strong>发言是否遵循外交规范？有无使用攻击性语言？</p>
+            <p>4. <strong>共识达成：</strong>最终协议是否体现了"共赢"精神？还是某一阵营过度让步？</p>
+            <p>5. <strong>真实外交案例对照：</strong>可参考《巴黎气候协定》（环保议题）、《RCEP区域全面经济伙伴关系协定》（贸易议题）、联合国难民公约（人道主义议题）等真实谈判案例。</p>
+        </div>
+        <div class="panel-card">
+            <h2>📚 外交谈判知识科普</h2>
+            <p><strong>多边外交：</strong>指三个或以上国家共同参与的谈判，通常在联合国等国际组织框架下进行。</p>
+            <p><strong>利益交换（Horse Trading）：</strong>在谈判中，各方通过在不同议题上的让步来换取其他议题上的收益。</p>
+            <p><strong>底线思维：</strong>每个谈判方都有不可逾越的底线，突破底线意味着谈判失败或被迫退出。</p>
+            <p><strong>共识原则：</strong>多边外交中，协议的达成往往需要各方"共识"，而非简单多数投票，体现了外交的特殊性。</p>
+            <p><strong>斡旋与调解：</strong>中立阵营在谈判中扮演"斡旋者"角色，通过提出折中方案帮助各方缩小分歧。</p>
+        </div>
+        <div class="panel-card text-center">
+            <button class="btn primary" onclick="resetAll()">🔄 开始新一轮谈判</button>
+        </div>
+    </div>
+</div><!-- Modal for faction details -->
+<div class="modal-overlay" id="factionModal">
+    <div class="modal">
+        <button class="close-btn" onclick="closeModal()">×</button>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<!-- Modal for assignment result -->
+<div class="modal-overlay" id="assignmentModal">
+    <div class="modal">
+        <button class="close-btn" onclick="closeAssignmentModal()">×</button>
+        <h3>🎲 角色分配结果</h3>
+        <div id="assignmentModalContent"></div>
+    </div>
+</div>
+
+<!-- Modal for rules introduction -->
+<div class="modal-overlay" id="rulesModal">
+    <div class="modal">
+        <button class="close-btn" onclick="closeRulesModal()">×</button>
+        <h3>📖 外交风云：利益与共识 · 完整规则介绍</h3>
+        <div id="rulesModalContent"></div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // GAME DATA
+    // ============================================================
+    const ISSUES = [
+        {
+            id: 1,
+            icon: '🌿',
+            name: '全球跨境资源分配与环境保护谈判',
+            coreConflict: '发达国家与发展中国家在稀有矿产资源开采配额、跨境碳排放减排责任、环保资金援助分配上的分歧。',
+            goal: '制定全球统一的资源开采与环保减排协议，明确各方配额、责任及资金分担方案。'
+        },
+        {
+            id: 2,
+            icon: '📦',
+            name: '区域贸易合作与关税协定谈判',
+            coreConflict: '不同经济体在进出口关税减免比例、贸易壁垒取消、农产品市场开放、知识产权保护上的利益冲突。',
+            goal: '达成区域多边自由贸易协定，降低区域内贸易成本，实现经济互利。'
+        },
+        {
+            id: 3,
+            icon: '🕊️',
+            name: '国际人道主义援助与难民安置谈判',
+            coreConflict: '各国在难民接收数量、援助资金出资额度、难民安置政策、跨境难民管理责任上的争议。',
+            goal: '确定全球人道主义援助方案，明确各国接收、出资、管理的具体义务。'
+        }
+    ];
+
+    const FACTIONS = {
+        developed: {
+            id: 'developed',
+            name: '发达国家阵营',
+            shortName: '发达国家',
+            icon: '🏛️',
+            color: '#3b82f6',
+            tag: '资金雄厚 · 话语权强',
+            coreInterests: [
+                '优先保障本国稀有资源供应安全',
+                '降低环保减排成本，争取灵活执行机制',
+                '维护本土核心产业竞争优势',
+                '减少难民接收数量，强调来源国责任'
+            ],
+            advantages: [
+                '资金优势：可提供环保/经济援助资金',
+                '话语权较强：在国际机构中影响力大',
+                '技术优势：可提供环保技术支持换取让步'
+            ],
+            bottomLines: [
+                '环保减排责任不超过既定比例（如不超过总减排的40%）',
+                '关税减免不损害本土核心产业（如汽车、高科技）',
+                '难民接收数量不超上限（如不超过总配额的25%）'
+            ],
+            defaultVote: 'approve'
+        },
+        developing: {
+            id: 'developing',
+            name: '发展中国家阵营',
+            shortName: '发展中国家',
+            icon: '🌱',
+            color: '#22c55e',
+            tag: '资源丰富 · 劳动力优势',
+            coreInterests: [
+                '争取更多资源开采配额和出口权利',
+                '获得环保/经济援助资金和技术转移',
+                '降低出口关税，放宽贸易壁垒',
+                '争取合理的碳排放发展空间'
+            ],
+            advantages: [
+                '资源与劳动力优势：拥有谈判筹码',
+                '合作意愿强：可联合其他阵营争取利益',
+                '数量优势：发展中国家数量多，可形成联盟'
+            ],
+            bottomLines: [
+                '不接受过高的环保减排压力（如不接受减排比例超过30%）',
+                '不放弃核心产业的贸易保护（如农业、纺织业）',
+                '援助资金不得附带不合理政治条件'
+            ],
+            defaultVote: 'approve'
+        },
+        neutral: {
+            id: 'neutral',
+            name: '中立调节阵营',
+            shortName: '中立调节',
+            icon: '⚖️',
+            color: '#a855f7',
+            tag: '斡旋调解 · 维护公信力',
+            coreInterests: [
+                '推动谈判达成共识协议',
+                '平衡各方利益，维护国际会议公信力',
+                '提出折中方案，缩小各方分歧'
+            ],
+            advantages: [
+                '主持谈判流程，拥有程序话语权',
+                '可提出折中方案，引导谈判走向',
+                '拥有一次投票否决极端提案的权利'
+            ],
+            bottomLines: [
+                '不偏袒任何一方阵营',
+                '协议需符合国际公平原则',
+                '不追求直接经济/资源利益'
+            ],
+            defaultVote: 'approve'
+        },
+        alliance: {
+            id: 'alliance',
+            name: '区域同盟阵营',
+            shortName: '区域同盟',
+            icon: '🤝',
+            color: '#f97316',
+            tag: '抱团博弈 · 区域话语权',
+            coreInterests: [
+                '维护同盟内部利益一致，统一对外立场',
+                '共同争取区域话语权和规则制定权',
+                '实现同盟整体利益最大化'
+            ],
+            advantages: [
+                '内部可提前协商，统一谈判立场',
+                '抱团博弈能力强，可形成集体谈判力量',
+                '可在其他阵营之间灵活选择合作对象'
+            ],
+            bottomLines: [
+                '不接受损害同盟整体利益的条款',
+                '同盟内部需保持立场一致',
+                '不单独与外部阵营达成有损同盟的协议'
+            ],
+            defaultVote: 'approve'
+        }
+    };
+
+    const STEPS = [
+        { id: 0, name: '角色分配与备战', duration: 600, desc: '各阵营领取身份卡，熟悉自身核心利益与底线。同阵营玩家私下协商，确定首席代表、发言顺序和初步立场。主持人宣读议题和规则。' },
+        { id: 1, name: '立场陈述', duration: 900, desc: '各阵营首席代表依次上台发言（3分钟/阵营），阐述本国/本阵营对议题的立场、核心诉求及初步提案。其他阵营记录诉求，禁止中途打断。' },
+        { id: 2, name: '多边谈判与博弈', duration: 1800, desc: '自由磋商阶段：各阵营可自由走动，进行一对一/多边私下沟通。公开辩论阶段：各方公开发言、提出质疑和修改意见（限时2分钟/次）。中立阵营可提出折中方案。' },
+        { id: 3, name: '最终提案与投票', duration: 900, desc: '各阵营提交最终草案，首席代表宣读完整提案（限时5分钟）。所有阵营投票表决，需超2/3阵营同意方可通过。未通过可紧急磋商5分钟后再次投票。' },
+        { id: 4, name: '计分点评与总结', duration: 600, desc: '统计各阵营得分，公布排名。主持人点评谈判技巧和利益权衡表现，讲解真实外交谈判原则与策略。' }
+    ];// ============================================================
+// GAME STATE
+// ============================================================
+let state = {
+    selectedIssueId: 1,
+    selectedFactions: ['developed', 'developing', 'neutral', 'alliance'],
+    currentStep: 0,
+    timerRunning: false,
+    timerRemaining: 600,
+    timerInterval: null,
+    playerCount: 4,
+    assignment: [],
+    scores: {},
+    coreInterestChecks: {},
+    compromiseChecks: {},
+    finalScores: {},
+    votes: {},
+    voteSubmitted: false,
+    agreementSigned: {},
+    gameStarted: false,
+    negotiationResult: null
+};
+
+// ============================================================
+// DOM REFS
+// ============================================================
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+function init() {
+    renderIssues();
+    renderSetupFactions();
+    setupTabNav();
+    renderStepProgress();
+    resetTimer();
+    updateTimerPhase();
+    renderRoleFactions();
+    renderScoreboard();
+    renderScoreDetail();
+    renderVoteSection();
+    updateSigningArea();
+    renderRulesModalContent();
+}
+
+// ============================================================
+// TAB NAVIGATION
+// ============================================================
+function setupTabNav() {
+    $$('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            $$('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            $$('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + tab).classList.add('active');
+        });
+    });
+}
+
+function switchTab(tab) {
+    $$('.tab-btn').forEach(b => {
+        if (b.dataset.tab === tab) b.classList.add('active');
+        else b.classList.remove('active');
+    });
+    $$('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+}// ============================================================
+// RENDER ISSUES
+// ============================================================
+function renderIssues() {
+    const grid = document.getElementById('issueGrid');
+    grid.innerHTML = '';
+    ISSUES.forEach(issue => {
+        const card = document.createElement('div');
+        card.className = 'issue-card' + (state.selectedIssueId === issue.id ? ' selected' : '');
+        card.innerHTML = `
+            <div class="issue-check">✓</div>
+            <div class="issue-icon">${issue.icon}</div>
+            <h4>${issue.name}</h4>
+            <div class="issue-desc"><strong>核心矛盾：</strong>${issue.coreConflict}</div>
+            <div class="issue-goal"><strong>谈判目标：</strong>${issue.goal}</div>
+        `;
+        card.addEventListener('click', () => {
+            state.selectedIssueId = issue.id;
+            renderIssues();
+        });
+        grid.appendChild(card);
+    });
+}
+
+function getSelectedIssue() {
+    return ISSUES.find(i => i.id === state.selectedIssueId) || ISSUES[0];
+}
+
+// ============================================================
+// RENDER SETUP FACTIONS
+// ============================================================
+function renderSetupFactions() {
+    const grid = document.getElementById('setupFactionGrid');
+    grid.innerHTML = '';
+    Object.values(FACTIONS).forEach(faction => {
+        const isSelected = state.selectedFactions.includes(faction.id);
+        const card = document.createElement('div');
+        card.className = 'faction-card' + (isSelected ? ' selected' : '');
+        card.style.setProperty('--faction-color', faction.color);
+        card.innerHTML = `
+            <div class="faction-header">
+                <span class="faction-icon">${faction.icon}</span>
+                <div>
+                    <div class="faction-name">${faction.name}</div>
+                    <span class="faction-tag">${faction.tag}</span>
+                </div>
+            </div>
+            <div class="faction-details">
+                <li><strong>核心利益：</strong>${faction.coreInterests.slice(0, 2).join('、')}等</li>
+                <li><strong>优势：</strong>${faction.advantages[0]}</li>
+            </div>
+        `;
+        card.addEventListener('click', () => toggleFactionSelection(faction.id));
+        grid.appendChild(card);
+    });
+}
+
+function toggleFactionSelection(factionId) {
+    const idx = state.selectedFactions.indexOf(factionId);
+    if (idx >= 0) {
+        if (state.selectedFactions.length > 2) {
+            state.selectedFactions.splice(idx, 1);
+        }
+    } else {
+        state.selectedFactions.push(factionId);
+    }
+    renderSetupFactions();
+}
+
+// ============================================================
+// RENDER ROLE FACTIONS
+// ============================================================
+function renderRoleFactions() {
+    const grid = document.getElementById('roleFactionGrid');
+    grid.innerHTML = '';
+    state.selectedFactions.forEach(fid => {
+        const faction = FACTIONS[fid];
+        if (!faction) return;
+        const card = document.createElement('div');
+        card.className = 'faction-card';
+        card.style.setProperty('--faction-color', faction.color);
+        card.innerHTML = `
+            <div class="faction-header">
+                <span class="faction-icon">${faction.icon}</span>
+                <div>
+                    <div class="faction-name">${faction.name}</div>
+                    <span class="faction-tag">${faction.tag}</span>
+                </div>
+            </div>
+            <div class="faction-details">
+                <li><strong>核心利益：</strong></li>
+                ${faction.coreInterests.map(ci => `<li>${ci}</li>`).join('')}
+                <li style="margin-top:8px;"><strong>优势：</strong></li>
+                ${faction.advantages.map(ad => `<li>${ad}</li>`).join('')}
+            </div>
+            <div class="faction-bottom-line">
+                <strong>⚠️ 谈判底线：</strong><br>
+                ${faction.bottomLines.map(bl => `• ${bl}`).join('<br>')}
+            </div>
+        `;
+        card.addEventListener('click', () => showFactionModal(faction));
+        grid.appendChild(card);
+    });
+}
+
+function showFactionModal(faction) {
+    const modal = document.getElementById('factionModal');
+    const content = document.getElementById('modalContent');
+    content.innerHTML = `
+        <h3>${faction.icon} ${faction.name}</h3>
+        <p><strong>阵营定位：</strong>${faction.tag}</p>
+        <p><strong>核心利益：</strong></p>
+        <ul style="color:var(--text-secondary);line-height:1.7;padding-left:20px;font-size:0.9rem;margin-bottom:12px;">
+            ${faction.coreInterests.map(ci => `<li>${ci}</li>`).join('')}
+        </ul>
+        <p><strong>优势：</strong></p>
+        <ul style="color:var(--text-secondary);line-height:1.7;padding-left:20px;font-size:0.9rem;margin-bottom:12px;">
+            ${faction.advantages.map(ad => `<li>${ad}</li>`).join('')}
+        </ul>
+        <p><strong>⚠️ 谈判底线（不可突破）：</strong></p>
+        <ul style="color:#fca5a5;line-height:1.7;padding-left:20px;font-size:0.9rem;margin-bottom:12px;background:rgba(239,68,68,0.08);padding:12px 12px 12px 32px;border-radius:6px;border-left:3px solid var(--red);">
+            ${faction.bottomLines.map(bl => `<li>${bl}</li>`).join('')}
+        </ul>
+        <p class="text-muted" style="font-size:0.8rem;">⚠️ 底线信息仅限本阵营内部知晓，禁止向其他阵营透露。违反底线原则将扣除全部得分。</p>
+    `;
+    modal.classList.add('show');
+}
+
+function closeModal() {
+    document.getElementById('factionModal').classList.remove('show');
+}
+
+// ============================================================
+// RANDOM ASSIGNMENT
+// ============================================================
+function randomAssign() {
+    const count = parseInt(document.getElementById('playerCount').value) || 4;
+    if (count < 2 || count > 12) {
+        alert('玩家数量需在2-12人之间');
+        return;
+    }
+    const factions = [...state.selectedFactions];
+    if (factions.length === 0) {
+        alert('请先选择至少2个阵营');
+        return;
+    }
+    const players = [];
+    const names = ['玩家A', '玩家B', '玩家C', '玩家D', '玩家E', '玩家F', '玩家G', '玩家H', '玩家I', '玩家J', '玩家K', '玩家L'];
+    const factionPlayers = {};
+    factions.forEach(fid => { factionPlayers[fid] = 0; });
+
+    for (let i = 0; i < count; i++) {
+        let minCount = Infinity;
+        let targetFaction = factions[0];
+        factions.forEach(fid => {
+            if (factionPlayers[fid] < minCount) {
+                minCount = factionPlayers[fid];
+                targetFaction = fid;
+            }
+        });
+        const fid = targetFaction;
+        factionPlayers[fid]++;
+        players.push({
+            name: names[i] || ('玩家' + (i + 1)),
+            factionId: fid,
+            factionName: FACTIONS[fid].name
+        });
+    }
+    state.assignment = players;
+    state.playerCount = count;
+    showAssignment();
+}
+
+function showAssignment() {
+    const modal = document.getElementById('assignmentModal');
+    const content = document.getElementById('assignmentModalContent');
+    if (state.assignment.length === 0) {
+        content.innerHTML = '<p class="text-muted">暂无分配结果，请先点击"随机分配"。</p>';
+    } else {
+        const grouped = {};
+        state.assignment.forEach(p => {
+            if (!grouped[p.factionId]) grouped[p.factionId] = [];
+            grouped[p.factionId].push(p.name);
+        });
+        let html = '<div class="faction-grid" style="grid-template-columns:1fr;">';
+        Object.entries(grouped).forEach(([fid, names]) => {
+            const faction = FACTIONS[fid];
+            html += `
+                <div class="faction-card" style="--faction-color:${faction?.color || '#999'};margin-bottom:10px;">
+                    <div class="faction-header">
+                        <span class="faction-icon">${faction?.icon || '👤'}</span>
+                        <div>
+                            <div class="faction-name">${faction?.name || fid}</div>
+                            <span class="faction-tag">${names.length}人</span>
+                        </div>
+                    </div>
+                    <div class="faction-details">
+                        <li>${names.join('、')}</li>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        content.innerHTML = html;
+    }
+    modal.classList.add('show');
+}
+
+function closeAssignmentModal() {
+    document.getElementById('assignmentModal').classList.remove('show');
+}// ============================================================
+// RULES MODAL
+// ============================================================
+function renderRulesModalContent() {
+    const content = document.getElementById('rulesModalContent');
+    content.innerHTML = `
+        <p><strong>🌍 游戏简介：</strong>《外交风云：利益与共识》是一款模拟国际多边外交谈判的策略游戏，4-8名玩家分为2-4个国家阵营，围绕全球热点议题展开博弈，在维护自身利益的同时寻求共识，锻炼沟通表达、逻辑博弈和妥协共赢的能力。</p>
+        <h4>🎯 游戏目标</h4>
+        <p>通过多边谈判达成一份各方认可的协议，实现各自阵营利益最大化。谈判破裂将导致所有阵营共同受损。</p>
+        <h4>📋 可选议题（3选1）</h4>
+        <ul>
+            <li><strong>议题一：</strong>全球跨境资源分配与环境保护谈判——核心矛盾：资源配额、碳排放责任、环保资金分配。</li>
+            <li><strong>议题二：</strong>区域贸易合作与关税协定谈判——核心矛盾：关税减免、贸易壁垒、农产品市场开放。</li>
+            <li><strong>议题三：</strong>国际人道主义援助与难民安置谈判——核心矛盾：难民接收数量、出资额度、安置政策。</li>
+        </ul>
+        <h4>👥 阵营角色</h4>
+        <p>游戏包含四个可选的阵营角色，每个阵营都有独特的核心利益、优势和不可突破的谈判底线：</p>
+        <ul>
+            <li><strong>🏛️ 发达国家阵营：</strong>资金雄厚，话语权强，关注资源供应和环保成本，难民接收上限较低。</li>
+            <li><strong>🌱 发展中国家阵营：</strong>资源与劳动力优势，争取开采配额、经济援助和出口关税减免，抵制过高环保压力。</li>
+            <li><strong>⚖️ 中立调节阵营：</strong>推动共识，平衡各方利益，拥有提出折中方案和否决极端提案的权利。</li>
+            <li><strong>🤝 区域同盟阵营：</strong>维护同盟内部一致，抱团博弈，追求区域话语权最大化。</li>
+        </ul>
+        <h4>🔄 游戏流程（五大环节）</h4>
+        <ul>
+            <li><strong>1. 角色分配与备战（10分钟）：</strong>领取身份卡，确定首席代表和初步立场，主持人宣读规则。</li>
+            <li><strong>2. 立场陈述（15分钟）：</strong>各阵营首席代表依次发言（3分钟/阵营），阐述立场和初步提案。</li>
+            <li><strong>3. 多边谈判与博弈（30分钟）：</strong>自由磋商与公开辩论结合，可修改提案、拉拢盟友、提出折中方案。</li>
+            <li><strong>4. 最终提案与投票（15分钟）：</strong>提交最终草案，投票表决（需超过2/3阵营同意）。未通过可紧急磋商5分钟后再次投票。</li>
+            <li><strong>5. 计分点评与总结（10分钟）：</strong>统计得分、公布排名，主持人点评谈判技巧和外交策略。</li>
+        </ul>
+        <h4>📊 计分规则</h4>
+        <ul>
+            <li><strong>谈判成功：</strong>达成协议且未突破自身底线，获得基础利益分10分；实现核心诉求，每条加3分；做出合理妥协，每条加1分。</li>
+            <li><strong>谈判破裂：</strong>所有阵营扣除5分，无额外加分。</li>
+            <li><strong>中立阵营：</strong>推动谈判成功，获得15分；谈判破裂，同样扣除5分。</li>
+        </ul>
+        <h4>⚠️ 核心规则</h4>
+        <ul>
+            <li><strong>底线原则：</strong>任何阵营不得突破身份卡标注的谈判底线，违者扣除全部得分。</li>
+            <li><strong>诚信原则：</strong>不得编造虚假国家信息或虚假承诺，一经发现取消加分资格。</li>
+            <li><strong>时间原则：</strong>严格遵守各环节时间限制，超时视为自动放弃发言机会。</li>
+            <li><strong>妥协原则：</strong>外交谈判以共赢为核心，一味拒绝妥协将大概率导致谈判破裂。</li>
+        </ul>
+        <p class="text-muted">💡 主持人可根据实际情况灵活调整时间，并在总结环节结合真实外交案例（如《巴黎气候协定》、RCEP等）进行讲解。</p>
+    `;
+}
+
+function showRulesModal() {
+    document.getElementById('rulesModal').classList.add('show');
+}
+
+function closeRulesModal() {
+    document.getElementById('rulesModal').classList.remove('show');
+}
+
+// ============================================================
+// STEP PROGRESS
+// ============================================================
+function renderStepProgress() {
+    const container = document.getElementById('stepProgress');
+    container.innerHTML = '';
+    STEPS.forEach((step, idx) => {
+        const item = document.createElement('div');
+        item.className = 'step-item';
+        if (idx === state.currentStep) item.classList.add('active');
+        if (idx < state.currentStep) item.classList.add('completed');
+        item.innerHTML = `
+            <div class="step-dot">${idx + 1}</div>
+            <span class="step-name">${step.name}</span>
+        `;
+        item.addEventListener('click', () => {
+            state.currentStep = idx;
+            resetTimer();
+            renderStepProgress();
+            updateStepDetail();
+            updateTimerPhase();
+        });
+        container.appendChild(item);
+        if (idx < STEPS.length - 1) {
+            const line = document.createElement('div');
+            line.className = 'step-line';
+            container.appendChild(line);
+        }
+    });
+    updateStepDetail();
+}
+
+function updateStepDetail() {
+    const step = STEPS[state.currentStep];
+    const detail = document.getElementById('stepDetail');
+    detail.innerHTML = `
+        <h3>📌 第${state.currentStep + 1}环节：${step.name}</h3>
+        <p>${step.desc}</p>
+        <p class="text-muted">建议时长：${Math.round(step.duration / 60)}分钟</p>
+    `;
+}
+
+function nextStep() {
+    if (state.currentStep < STEPS.length - 1) {
+        state.currentStep++;
+        resetTimer();
+        renderStepProgress();
+        updateTimerPhase();
+        updateStepDetail();
+    } else {
+        switchTab('score');
+    }
+}
+
+function prevStep() {
+    if (state.currentStep > 0) {
+        state.currentStep--;
+        resetTimer();
+        renderStepProgress();
+        updateTimerPhase();
+        updateStepDetail();
+    } else {
+        switchTab('roles');
+    }
+}// ============================================================
+// TIMER
+// ============================================================
+function startTimer() {
+    if (state.timerRunning) return;
+    state.timerRunning = true;
+    document.getElementById('timerStartBtn').textContent = '⏳ 运行中';
+    state.timerInterval = setInterval(() => {
+        if (state.timerRemaining > 0) {
+            state.timerRemaining--;
+            updateTimerDisplay();
+        } else {
+            pauseTimer();
+            alert('⏰ 时间到！请进入下一环节。');
+        }
+    }, 1000);
+}
+
+function pauseTimer() {
+    state.timerRunning = false;
+    document.getElementById('timerStartBtn').textContent = '▶ 继续';
+    clearInterval(state.timerInterval);
+}
+
+function resetTimer() {
+    pauseTimer();
+    state.timerRemaining = STEPS[state.currentStep].duration;
+    document.getElementById('timerStartBtn').textContent = '▶ 开始';
+    updateTimerDisplay();
+    updateTimerPhase();
+}
+
+function skipTimer() {
+    pauseTimer();
+    state.timerRemaining = 0;
+    updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+    const mins = Math.floor(state.timerRemaining / 60);
+    const secs = state.timerRemaining % 60;
+    document.getElementById('timerDisplay').textContent =
+        String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+}
+
+function updateTimerPhase() {
+    const step = STEPS[state.currentStep];
+    document.getElementById('timerPhase').textContent = '当前环节：' + step.name;
+}
+
+// ============================================================
+// SCOREBOARD
+// ============================================================
+function renderScoreboard() {
+    const board = document.getElementById('scoreboard');
+    board.innerHTML = '';
+    state.selectedFactions.forEach(fid => {
+        const faction = FACTIONS[fid];
+        if (!faction) return;
+        const score = state.finalScores[fid] !== undefined ? state.finalScores[fid] : 0;
+        const card = document.createElement('div');
+        card.className = 'score-card';
+        card.style.setProperty('--faction-color', faction.color);
+        card.innerHTML = `
+            <div class="score-faction-name">${faction.icon} ${faction.shortName}</div>
+            <div class="score-value">${score}</div>
+            <div class="score-detail">基础分+诉求加分-妥协扣分</div>
+        `;
+        board.appendChild(card);
+    });
+}
+
+// ============================================================
+// SCORE DETAIL
+// ============================================================
+function renderScoreDetail() {
+    const container = document.getElementById('scoreDetailArea');
+    container.innerHTML = '';
+    state.selectedFactions.forEach(fid => {
+        const faction = FACTIONS[fid];
+        if (!faction) return;
+        const coreChecks = state.coreInterestChecks[fid] || faction.coreInterests.map(() => false);
+        const compromiseChecks = state.compromiseChecks[fid] || faction.coreInterests.map(() => false);
+
+        const card = document.createElement('div');
+        card.style.cssText = 'background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:12px;';
+        card.innerHTML = `
+            <h4 style="color:${faction.color};margin-bottom:8px;">${faction.icon} ${faction.name}</h4>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;">✅ 核心诉求达成（每条+3分）：</p>
+            <div style="margin-bottom:10px;">
+                ${faction.coreInterests.map((ci, idx) => `
+                    <label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:0.85rem;color:var(--text-secondary);cursor:pointer;">
+                        <input type="checkbox" data-type="core" data-faction="${fid}" data-index="${idx}" ${coreChecks[idx] ? 'checked' : ''} onchange="handleCheckChange(this)">
+                        <span>${ci}</span>
+                    </label>
+                `).join('')}
+            </div>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;">🤝 合理妥协（每条+1分）：</p>
+            <div>
+                ${faction.coreInterests.map((ci, idx) => `
+                    <label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:0.85rem;color:var(--text-secondary);cursor:pointer;">
+                        <input type="checkbox" data-type="compromise" data-faction="${fid}" data-index="${idx}" ${compromiseChecks[idx] ? 'checked' : ''} onchange="handleCheckChange(this)">
+                        <span>在「${ci.substring(0, 20)}${ci.length > 20 ? '…' : ''}」方面做出让步</span>
+                    </label>
+                `).join('')}
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function handleCheckChange(checkbox) {
+    const type = checkbox.dataset.type;
+    const fid = checkbox.dataset.faction;
+    const idx = parseInt(checkbox.dataset.index);
+    const faction = FACTIONS[fid];
+    if (!faction) return;
+
+    if (type === 'core') {
+        if (!state.coreInterestChecks[fid]) {
+            state.coreInterestChecks[fid] = faction.coreInterests.map(() => false);
+        }
+        state.coreInterestChecks[fid][idx] = checkbox.checked;
+    } else if (type === 'compromise') {
+        if (!state.compromiseChecks[fid]) {
+            state.compromiseChecks[fid] = faction.coreInterests.map(() => false);
+        }
+        state.compromiseChecks[fid][idx] = checkbox.checked;
+    }
+    calculateScores();
+}        // ============================================================
+        // CALCULATE SCORES
+        // ============================================================
+        function calculateScores() {
+            const isSuccess = state.negotiationResult === 'success';
+            const isFailure = state.negotiationResult === 'failure';
+            const scores = {};
+
+            state.selectedFactions.forEach(fid => {
+                const faction = FACTIONS[fid];
+                if (!faction) return;
+
+                let total = 0;
+                if (fid === 'neutral') {
+                    if (isSuccess) {
+                        total = 15;
+                    } else if (isFailure) {
+                        total = -5;
+                    } else {
+                        total = 0;
+                    }
+                } else {
+                    if (isSuccess) {
+                        total += 10;
+                    } else if (isFailure) {
+                        total -= 5;
+                    }
+                    const coreChecks = state.coreInterestChecks[fid] || [];
+                    coreChecks.forEach(c => { if (c) total += 3; });
+                    const compromiseChecks = state.compromiseChecks[fid] || [];
+                    compromiseChecks.forEach(c => { if (c) total += 1; });
+                }
+                scores[fid] = total;
+            });
+
+            state.finalScores = scores;
+            renderScoreboard();
+            renderFinalResult();
+            return scores;
+        }
+
+        // ============================================================
+        // VOTE SECTION
+        // ============================================================
+        function renderVoteSection() {
+            const container = document.getElementById('voteSection');
+            container.innerHTML = '';
+            state.selectedFactions.forEach(fid => {
+                const faction = FACTIONS[fid];
+                if (!faction) return;
+                const currentVote = state.votes[fid] || null;
+                const btn = document.createElement('button');
+                btn.className = 'vote-btn';
+                if (currentVote === 'approve') btn.classList.add('approve', 'voted');
+                else if (currentVote === 'reject') btn.classList.add('reject', 'voted');
+                btn.innerHTML = `${faction.icon} ${faction.shortName}<br><span style="font-size:0.8rem;">${currentVote === 'approve' ? '✅ 赞成' : currentVote === 'reject' ? '❌ 反对' : '— 未投票 —'}</span>`;
+                btn.addEventListener('click', () => {
+                    if (state.voteSubmitted) return;
+                    if (state.votes[fid] === 'approve') {
+                        state.votes[fid] = 'reject';
+                    } else if (state.votes[fid] === 'reject') {
+                        state.votes[fid] = null;
+                    } else {
+                        state.votes[fid] = 'approve';
+                    }
+                    renderVoteSection();
+                });
+                container.appendChild(btn);
+            });
+        }
+
+        function conductVote() {
+            if (state.voteSubmitted) {
+                alert('投票已提交，请先重置投票。');
+                return;
+            }
+            const totalFactions = state.selectedFactions.length;
+            const approveCount = Object.values(state.votes).filter(v => v === 'approve').length;
+            const requiredApprovals = Math.floor(totalFactions * 2 / 3) + 1;
+
+            let resultHtml = '';
+            if (approveCount >= requiredApprovals) {
+                state.voteSubmitted = true;
+                state.negotiationResult = 'success';
+                resultHtml = `<div style="padding:16px;background:rgba(34,197,94,0.15);border-radius:var(--radius-sm);border:1px solid rgba(34,197,94,0.4);">
+                    <h3 style="color:var(--green);margin-bottom:8px;">✅ 提案通过！谈判成功！</h3>
+                    <p style="color:var(--text-secondary);">赞成票：${approveCount}/${totalFactions}（需≥${requiredApprovals}）</p>
+                    <p style="color:var(--text-secondary);">各阵营可进入签署环节，确认协议内容。</p>
+                    <div style="margin-top:10px;font-size:0.9rem;color:var(--text-secondary);">
+                        ${state.selectedFactions.map(fid => {
+                            const f = FACTIONS[fid];
+                            const v = state.votes[fid] || 'abstain';
+                            const label = v === 'approve' ? '✅ 赞成' : v === 'reject' ? '❌ 反对' : '⚪ 未投票';
+                            return `<span style="margin-right:16px;">${f.icon} ${f.shortName}: ${label}</span>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+                updateSigningArea();
+                calculateScores();
+            } else {
+                state.negotiationResult = 'failure';
+                resultHtml = `<div style="padding:16px;background:rgba(239,68,68,0.15);border-radius:var(--radius-sm);border:1px solid rgba(239,68,68,0.4);">
+                    <h3 style="color:var(--red);margin-bottom:8px;">❌ 提案未通过，谈判破裂。</h3>
+                    <p style="color:var(--text-secondary);">赞成票：${approveCount}/${totalFactions}（需≥${requiredApprovals}）</p>
+                    <p style="color:var(--text-secondary);">所有阵营扣除5分。可尝试紧急磋商后重新投票。</p>
+                    <div style="margin-top:10px;font-size:0.9rem;color:var(--text-secondary);">
+                        ${state.selectedFactions.map(fid => {
+                            const f = FACTIONS[fid];
+                            const v = state.votes[fid] || 'abstain';
+                            const label = v === 'approve' ? '✅ 赞成' : v === 'reject' ? '❌ 反对' : '⚪ 未投票';
+                            return `<span style="margin-right:16px;">${f.icon} ${f.shortName}: ${label}</span>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+                calculateScores();
+            }
+            document.getElementById('voteResult').innerHTML = resultHtml;
+            renderVoteSection();
+            calculateScores();
+        }
+
+        function resetVote() {
+            state.votes = {};
+            state.voteSubmitted = false;
+            state.negotiationResult = null;
+            state.agreementSigned = {};
+            document.getElementById('voteResult').innerHTML = '';
+            updateSigningArea();
+            renderVoteSection();
+            calculateScores();
+        }
+
+        // ============================================================
+        // SIGNING
+        // ============================================================
+        function updateSigningArea() {
+            const area = document.getElementById('signingArea');
+            if (state.negotiationResult !== 'success') {
+                area.innerHTML = '<span class="text-muted">投票通过后，各阵营可在此签署协议</span>';
+                return;
+            }
+            let html = '<div style="width:100%;text-align:left;">';
+            html += '<p style="color:var(--gold-light);font-weight:600;margin-bottom:10px;">📜 协议签署表</p>';
+            html += '<div class="flex-wrap">';
+            state.selectedFactions.forEach(fid => {
+                const faction = FACTIONS[fid];
+                if (!faction) return;
+                const signed = state.agreementSigned[fid] || false;
+                html += `
+                    <button class="btn small ${signed ? 'success' : ''}" onclick="toggleSign('${fid}')" style="margin:4px;">
+                        ${faction.icon} ${faction.shortName} ${signed ? '✅ 已签署' : '📝 签署'}
+                    </button>
+                `;
+            });
+            html += '</div>';
+            const allSigned = state.selectedFactions.every(fid => state.agreementSigned[fid]);
+            if (allSigned) {
+                html += '<p style="color:var(--green);font-weight:600;margin-top:10px;">✅ 所有阵营已签署协议，谈判圆满成功！</p>';
+            } else {
+                html += '<p class="text-muted" style="margin-top:10px;">等待各阵营签署...</p>';
+            }
+            html += '</div>';
+            area.innerHTML = html;
+        }
+
+        function toggleSign(fid) {
+            state.agreementSigned[fid] = !state.agreementSigned[fid];
+            updateSigningArea();
+        }
+
+        // ============================================================
+        // FINAL RESULT
+        // ============================================================
+        function renderFinalResult() {
+            const container = document.getElementById('finalResult');
+            if (!container) return;
+            if (Object.keys(state.finalScores).length === 0) {
+                container.innerHTML = '<p class="text-muted">暂无计分结果。请先在计分页面完成投票和计分。</p>';
+                return;
+            }
+            const entries = Object.entries(state.finalScores).map(([fid, score]) => ({
+                fid,
+                score,
+                faction: FACTIONS[fid]
+            })).filter(e => e.faction);
+            entries.sort((a, b) => b.score - a.score);
+
+            const maxScore = entries.length > 0 ? entries[0].score : 0;
+            let html = `<div class="scoreboard" style="grid-template-columns:repeat(auto-fit, minmax(200px,1fr));">`;
+            entries.forEach((entry, idx) => {
+                const isWinner = entry.score === maxScore && entry.score > 0;
+                html += `
+                    <div class="score-card ${isWinner ? 'winner' : ''}" style="--faction-color:${entry.faction.color};">
+                        <div class="score-faction-name">${entry.faction.icon} ${entry.faction.shortName}</div>
+                        <div class="score-value">${entry.score}</div>
+                        <div class="score-detail">排名 #${idx + 1} ${isWinner ? '🏆 优胜' : ''}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            if (state.negotiationResult === 'success') {
+                html += '<p style="color:var(--green);font-weight:600;margin-top:12px;">✅ 谈判成功，达成多边共识协议。</p>';
+            } else if (state.negotiationResult === 'failure') {
+                html += '<p style="color:var(--red);font-weight:600;margin-top:12px;">❌ 谈判破裂，各方均受损失。</p>';
+            } else {
+                html += '<p class="text-muted" style="margin-top:12px;">谈判尚未完成投票。</p>';
+            }
+            container.innerHTML = html;
+        }
+
+        // ============================================================
+        // GAME START / RESET
+        // ============================================================
+        function startGame() {
+            if (state.selectedFactions.length < 2) {
+                alert('请至少选择2个阵营参与谈判。');
+                return;
+            }
+            if (!state.selectedIssueId) {
+                alert('请选择谈判议题。');
+                return;
+            }
+            state.gameStarted = true;
+            state.currentStep = 0;
+            state.negotiationResult = null;
+            state.votes = {};
+            state.voteSubmitted = false;
+            state.agreementSigned = {};
+            state.finalScores = {};
+            state.coreInterestChecks = {};
+            state.compromiseChecks = {};
+            resetTimer();
+            renderStepProgress();
+            renderRoleFactions();
+            renderScoreboard();
+            renderScoreDetail();
+            renderVoteSection();
+            updateSigningArea();
+            renderFinalResult();
+            switchTab('roles');
+            const issue = getSelectedIssue();
+            alert(`🎯 已选定议题：${issue.name}\n\n请各阵营领取身份卡，开始备战！`);
+        }
+
+        function resetAll() {
+            if (!confirm('确定要重置所有游戏数据吗？')) return;
+            state = {
+                selectedIssueId: 1,
+                selectedFactions: ['developed', 'developing', 'neutral', 'alliance'],
+                currentStep: 0,
+                timerRunning: false,
+                timerRemaining: 600,
+                timerInterval: null,
+                playerCount: 4,
+                assignment: [],
+                scores: {},
+                coreInterestChecks: {},
+                compromiseChecks: {},
+                finalScores: {},
+                votes: {},
+                voteSubmitted: false,
+                agreementSigned: {},
+                gameStarted: false,
+                negotiationResult: null
+            };
+            pauseTimer();
+            renderIssues();
+            renderSetupFactions();
+            renderStepProgress();
+            resetTimer();
+            renderRoleFactions();
+            renderScoreboard();
+            renderScoreDetail();
+            renderVoteSection();
+            updateSigningArea();
+            renderFinalResult();
+            document.getElementById('playerCount').value = 4;
+            document.getElementById('voteResult').innerHTML = '';
+            switchTab('setup');
+        }
+
+        // ============================================================
+        // EVENT LISTENERS
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', init);
+
+        document.getElementById('factionModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeModal();
+        });
+        document.getElementById('assignmentModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeAssignmentModal();
+        });
+        document.getElementById('rulesModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeRulesModal();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                closeAssignmentModal();
+                closeRulesModal();
+            }
+            if (e.key === ' ' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                if (state.timerRunning) {
+                    pauseTimer();
+                } else {
+                    startTimer();
+                }
+            }
+        });
+        </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(() => console.log('SW registered'))
+                .catch(err => console.log('SW failed', err));
+        }
+    </script>
+</body>
+</html>

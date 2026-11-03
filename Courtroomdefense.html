@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>比努亚村：法庭辩护</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0c; color: #e0dcd0; font-family: 'Georgia', 'Songti SC', serif; min-height: 100vh; display: flex; justify-content: center; padding: 20px; }
+#app { max-width: 720px; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+#header { text-align: center; border-bottom: 1px solid #3a362e; padding-bottom: 12px; }
+#header h1 { font-size: 22px; font-weight: normal; letter-spacing: 2px; color: #c9a96a; }
+#header p { font-size: 12px; color: #6b665c; margin-top: 4px; }
+#scene { font-size: 12px; color: #6b665c; letter-spacing: 1px; }
+#text-box { background: #14141a; border: 1px solid #2e2a22; padding: 24px; font-size: 17px; line-height: 2; min-height: 140px; white-space: pre-wrap; }
+#choices { display: flex; flex-direction: column; gap: 8px; }
+#choices button { background: #1c1c22; color: #d8d4c8; border: 1px solid #3a362e; padding: 14px 18px; cursor: pointer; font-size: 15px; font-family: inherit; text-align: left; transition: all 0.15s; }
+#choices button:hover { background: #26262e; border-color: #c9a96a; color: #f0ead8; }
+#verdict { margin-top: 10px; padding: 20px; border: 1px solid #c9a96a; background: #1a1814; font-size: 16px; text-align: center; color: #e8d8a8; white-space: pre-wrap; }
+#evidence-box { border: 1px solid #2e2a22; background: #14141a; padding: 12px; }
+#evidence-box h3 { font-size: 13px; color: #6b665c; margin-bottom: 8px; letter-spacing: 1px; }
+#evidence-list { list-style: none; font-size: 13px; line-height: 1.8; }
+#evidence-list li { padding: 4px 0; cursor: pointer; }
+#evidence-list li:hover { color: #c9a96a; }
+#evidence-list li.selected { color: #c9a96a; font-weight: bold; }
+#credibility { font-size: 13px; color: #6b665c; }
+#credibility span { color: #ef4444; font-weight: bold; }
+#restart { margin-top: 12px; background: none; border: 1px solid #3a362e; color: #6b665c; padding: 8px 16px; cursor: pointer; font-family: inherit; font-size: 13px; }
+#restart:hover { color: #c9a96a; border-color: #c9a96a; }
+#entry { display: flex; flex-direction: column; gap: 12px; }
+#entry button { background: #1c1c22; color: #d8d4c8; border: 1px solid #3a362e; padding: 18px; cursor: pointer; font-size: 16px; font-family: inherit; text-align: center; letter-spacing: 1px; transition: all 0.15s; }
+#entry button:hover { background: #26262e; border-color: #c9a96a; color: #f0ead8; }
+#save-status { font-size: 12px; color: #6b665c; text-align: center; }
+#clear-save { background: none; border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; cursor: pointer; font-family: inherit; font-size: 12px; }
+#clear-save:hover { background: rgba(239, 68, 68, 0.1); }
+#intro { font-size: 14px; line-height: 2; color: #b8b0a0; }
+#intro .disclaimer { font-size: 12px; color: #6b665c; margin-top: 16px; border-top: 1px solid #2e2a22; padding-top: 12px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>比努亚村：法庭辩护</h1>
+    <p>1812年9月 · 莫斯科河沿岸</p>
+  </div>
+  <div id="scene"></div>
+  <div id="text-box"></div>
+  <div id="choices"></div>
+  <div id="evidence-box" style="display:none;">
+    <h3>证据库（点击选择，然后在证词上出示）</h3>
+    <ul id="evidence-list"></ul>
+  </div>
+  <div id="verdict"></div>
+  <div id="credibility"></div>
+  <button id="restart" onclick="goEntry()">返回主菜单</button>
+  <p id="save-status"></p>
+  <button id="clear-save" onclick="clearAllSave()">清除所有进度</button>
+</div>
+<script>const cases = {
+  case1: {
+    title: "案件一：起义军阿基姆·叶戈罗夫",
+    defendant: "阿基姆·叶戈罗夫",
+    charge: "武装叛乱、通敌",
+    defender: "同村长者",
+    evidence: [
+      { id: "e1", name: "阿基姆的口述记录", desc: "记录者不详，有删改痕迹。" },
+      { id: "e2", name: "村民联名请愿书", desc: "签名有涂改。" },
+      { id: "e3", name: "俄军征召民夫的命令原件", desc: "有俄军军官签字。" },
+      { id: "e4", name: "斯捷潘的死亡证明", desc: "死因写的是“骚乱中身亡”。" },
+      { id: "e5", name: "起义军武器清单", desc: "草叉、锄头、火枪，没有制式武器。" }
+    ],
+    witness: {
+      name: "县警察局长的副手",
+      statement: [
+        "起义军提前准备了武器。",
+        "他们袭击了警察局，抢走了枪支。",
+        "阿基姆是主谋之一，他亲自指挥了袭击。",
+        "俄军开枪，是为了镇压暴乱。"
+      ],
+      contradictions: {
+        0: { evidence: "e5", explanation: "武器清单上只有草叉、锄头、火枪，没有提前准备的制式武器。" },
+        1: { evidence: "e3", explanation: "命令原件写了，俄军先强征民夫，村民才反抗的。" },
+        2: { evidence: "e1", explanation: "口述里写了他只是跟着人群喊，没有指挥。" },
+        3: { evidence: "e4", explanation: "死亡证明写的是“骚乱中身亡”，不是“被枪杀”。" }
+      }
+    }
+  },
+  case2: {
+    title: "案件二：法军画师埃德蒙·德·瓦雷纳",
+    defendant: "埃德蒙·德·瓦雷纳",
+    charge: "间谍罪",
+    defender: "法军同僚杜邦",
+    evidence: [
+      { id: "e1", name: "瓦雷纳的画稿", desc: "战场速写，有炮火痕迹。" },
+      { id: "e2", name: "瓦雷纳的日记", desc: "记录了被俄军猎兵击伤的过程。" },
+      { id: "e3", name: "法军第17独立团编制表", desc: "确认瓦雷纳是画师，不是军官。" },
+      { id: "e4", name: "要塞构造图", desc: "和瓦雷纳画稿里的要塞有相似之处。" },
+      { id: "e5", name: "随军医生的证词", desc: "证明瓦雷纳右肩中弹，肺部贯穿。" }
+    ],
+    witness: {
+      name: "俄军情报官",
+      statement: [
+        "瓦雷纳的画稿，精确到要塞的每一个射击孔。",
+        "他画这些图，是为了交给法军炮兵。",
+        "他被俘时，身上还带着要塞构造图。",
+        "他是个间谍，不是画师。"
+      ],
+      contradictions: {
+        0: { evidence: "e1", explanation: "画稿是速写，有炮火痕迹，不是精确制图。" },
+        1: { evidence: "e3", explanation: "编制表里瓦雷纳是画师，没有炮兵联络职能。" },
+        2: { evidence: "e5", explanation: "他右肩中弹，肺部贯穿，被俘时已经昏迷，不可能带着构造图。" },
+        3: { evidence: "e2", explanation: "日记里写了他被俄军猎兵击伤的过程，证明他一直在前线画画。" }
+      }
+    }
+  },
+  case3: {
+    title: "案件三：法军传令兵奥克塔夫·德·圣克莱尔",
+    defendant: "奥克塔夫·德·圣克莱尔",
+    charge: "传令失误导致先头部队覆没",
+    defender: "老掷弹兵班班长杜邦",
+    evidence: [
+      { id: "e1", name: "圣克莱尔的两份供词", desc: "前后矛盾。" },
+      { id: "e2", name: "参谋勒克莱尔的命令原件", desc: "有涂改痕迹。" },
+      { id: "e3", name: "杜邦的日记", desc: "记录了总攻当天的命令传递过程。" },
+      { id: "e4", name: "法军旅部通报", desc: "确认圣克莱尔是传令兵。" },
+      { id: "e5", name: "勒克莱尔的调任记录", desc: "战后被降级。" }
+    ],
+    witness: {
+      name: "参谋勒克莱尔",
+      statement: [
+        "命令是我拟的，但传令是圣克莱尔的事。",
+        "圣克莱尔只传了'准备前进'，没传'立即总攻'。",
+        "这是他的失误，不是我的责任。",
+        "战后我受内部质询，但未被追责。"
+      ],
+      contradictions: {
+        0: { evidence: "e2", explanation: "命令原件有涂改，涂改处正是'立即总攻'四个字。" },
+        1: { evidence: "e1", explanation: "第一份供词说'参谋让我这么传的'，第二份说'我自己记错了'。" },
+        2: { evidence: "e5", explanation: "勒克莱尔战后被降级，说明参谋层有责任。" },
+        3: { evidence: "e3", explanation: "日记里写了，命令传递时，勒克莱尔在场，且未纠正。" }
+      }
+    }
+  },
+  case4: {
+    title: "案件四：俄军总指挥彼得罗夫将军",
+    defendant: "彼得罗夫将军",
+    charge: "指挥失当、弃守阵地",
+    defender: "下属军官",
+    evidence: [
+      { id: "e1", name: "彼得罗夫的战报", desc: "有涂改。" },
+      { id: "e2", name: "副官扎伊采夫的遗物", desc: "一枚勋章和一本祈祷书。" },
+      { id: "e3", name: "工兵指挥官索科洛夫的阵亡记录", desc: "在炮击中阵亡。" },
+      { id: "e4", name: "俄军上级指挥部的战后总结", desc: "写的是'应予追查'。" },
+      { id: "e5", name: "士兵的口述", desc: "有人说他离开过指挥位。" }
+    ],
+    witness: {
+      name: "俄军参谋",
+      statement: [
+        "彼得罗夫在战斗中期离开指挥位。",
+        "他躲进后方，不再指挥。",
+        "防线失守，是他的责任。",
+        "他战后没有主动请罪，说明他心里有鬼。"
+      ],
+      contradictions: {
+        0: { evidence: "e1", explanation: "战报写了他一直在指挥位，直到瞭望塔被击中。" },
+        1: { evidence: "e2", explanation: "扎伊采夫在瞭望塔上被击中，彼得罗夫当时也在瞭望塔。" },
+        2: { evidence: "e3", explanation: "索科洛夫在炮击中阵亡，说明前线还在抵抗。" },
+        3: { evidence: "e4", explanation: "总结里写的是'应予追查'，不是'治罪'。" }
+      }
+    }
+  }
+};let state = {
+  currentCase: null,
+  contradictionsFound: 0,
+  credibility: 3,
+  selectedEvidence: null,
+  caseCompleted: {}
+};
+
+function loadSave() {
+  try {
+    const data = JSON.parse(localStorage.getItem("binua_court_save")) || {};
+    state.caseCompleted = data.caseCompleted || {};
+  } catch (e) {
+    state.caseCompleted = {};
+  }
+}
+
+function saveGame() {
+  localStorage.setItem("binua_court_save", JSON.stringify({ caseCompleted: state.caseCompleted }));
+}
+
+function goEntry() {
+  state.currentCase = null;
+  state.contradictionsFound = 0;
+  state.credibility = 3;
+  state.selectedEvidence = null;
+  document.getElementById("scene").innerText = "";
+  document.getElementById("text-box").innerText = "";
+  document.getElementById("choices").innerHTML = "";
+  document.getElementById("evidence-box").style.display = "none";
+  document.getElementById("verdict").innerHTML = "";
+  document.getElementById("credibility").innerHTML = "";
+  document.getElementById("restart").style.display = "none";
+
+  const entry = document.createElement("div");
+  entry.id = "entry";
+  entry.innerHTML = `
+    <div id="intro">
+      <p>1812年9月，莫斯科河沿岸，比努亚村。</p>
+      <p>一场小规模遭遇战，打了近一昼夜。法军赢了，俄军退了。</p>
+      <p>战后，各方说法不一。有人被追责，有人被审判。</p>
+      <p>你手里有一堆证词、证据、口述、战报。你要做的，是替四个人说话，证明他们不是罪人。</p>
+      <p><strong>你的身份：</strong>你不是律师。1812年没有律师。你是被告的兄弟、战友、下属，或者同村的长者。</p>
+      <p><strong>规则：</strong>每个案件独立。证词里可能有矛盾。你追问，找出矛盾，出示证据，拆穿它。拆穿的矛盾越多，被告越可能无罪。</p>
+      <p class="disclaimer">本游戏灵感来自《逆转裁判》系列。世界观为虚构，人物、事件均非真实历史，仅供参考娱乐。</p>
+    </div>
+    <h2 style="color:#c9a96a;font-weight:normal;font-size:18px;margin:12px 0;">选择案件</h2>
+  `;
+
+  const caseOrder = ["case1", "case2", "case3", "case4"];
+  caseOrder.forEach(id => {
+    const c = cases[id];
+    const btn = document.createElement("button");
+    if (state.caseCompleted[id]) {
+      btn.textContent = "✅ " + c.title;
+    } else {
+      btn.textContent = c.title;
+    }
+    btn.onclick = () => startCase(id);
+    entry.appendChild(btn);
+  });
+
+  document.getElementById("choices").appendChild(entry);
+  document.getElementById("save-status").textContent = "已完成案件：" + Object.keys(state.caseCompleted).length + " / 4";
+}
+
+function startCase(caseId) {
+  state.currentCase = caseId;
+  state.contradictionsFound = 0;
+  state.credibility = 3;
+  state.selectedEvidence = null;
+  document.getElementById("restart").style.display = "none";
+  const entryEl = document.getElementById("entry");
+  if (entryEl) entryEl.remove();
+  renderCourt();
+}
+
+function renderCourt() {
+  const c = cases[state.currentCase];
+  document.getElementById("scene").innerText = c.title + " · 被告：" + c.defendant + " · 辩护者：" + c.defender;
+  document.getElementById("text-box").innerText = "检方指控：" + c.charge + "\n\n证人 " + c.witness.name + " 上庭作证。\n\n点击证词，追问，找出矛盾，出示证据。";
+  renderEvidence();
+  renderStatement();
+  updateCredibility();
+}
+
+function renderEvidence() {
+  const c = cases[state.currentCase];
+  const box = document.getElementById("evidence-box");
+  box.style.display = "block";
+  const list = document.getElementById("evidence-list");
+  list.innerHTML = "";
+  c.evidence.forEach(e => {
+    const li = document.createElement("li");
+    li.textContent = "📄 " + e.name;
+    if (state.selectedEvidence === e.id) li.className = "selected";
+    li.onclick = () => {
+      state.selectedEvidence = e.id;
+      renderEvidence();
+    };
+    list.appendChild(li);
+  });
+}function renderStatement() {
+  const c = cases[state.currentCase];
+  const choices = document.getElementById("choices");
+  choices.innerHTML = "";
+
+  const statementDiv = document.createElement("div");
+  statementDiv.style.cssText = "background:#14141a;border:1px solid #2e2a22;padding:16px;margin-bottom:10px;";
+  statementDiv.innerHTML = "<div style='color:#c9a96a;font-size:14px;margin-bottom:10px;'>证人证词</div>";
+  c.witness.statement.forEach((line, idx) => {
+    const btn = document.createElement("button");
+    btn.textContent = (idx + 1) + ". " + line;
+    btn.style.cssText = "width:100%;background:#1c1c22;color:#d8d4c8;border:1px solid #3a362e;padding:10px 14px;margin-bottom:6px;cursor:pointer;font-family:inherit;font-size:14px;text-align:left;";
+    btn.onmouseover = () => { btn.style.borderColor = "#c9a96a"; };
+    btn.onmouseout = () => { btn.style.borderColor = "#3a362e"; };
+    btn.onclick = () => {
+      if (!state.selectedEvidence) {
+        alert("请先在证据库里选一份证据。");
+        return;
+      }
+      const contradiction = c.witness.contradictions[idx];
+      if (contradiction && contradiction.evidence === state.selectedEvidence) {
+        state.contradictionsFound++;
+        alert("✅ 矛盾拆穿！\n\n" + contradiction.explanation);
+        if (state.contradictionsFound >= 2) {
+          finishCase(true);
+        } else {
+          renderStatement();
+          updateCredibility();
+        }
+      } else {
+        state.credibility--;
+        alert("❌ 证据不对，对方反驳了你。");
+        updateCredibility();
+        if (state.credibility <= 0) {
+          finishCase(false);
+        }
+      }
+    };
+    statementDiv.appendChild(btn);
+  });
+  choices.appendChild(statementDiv);
+
+  const hint = document.createElement("div");
+  hint.style.cssText = "font-size:12px;color:#6b665c;margin-top:8px;";
+  hint.textContent = "提示：先选证据，再点证词。拆穿两个以上矛盾，被告无罪。";
+  choices.appendChild(hint);
+}
+
+function updateCredibility() {
+  document.getElementById("credibility").innerHTML = "剩余机会：<span>" + state.credibility + "</span> · 已拆穿矛盾：" + state.contradictionsFound + " / 2";
+}
+
+function finishCase(win) {
+  const c = cases[state.currentCase];
+  const verdict = document.getElementById("verdict");
+  if (win) {
+    state.caseCompleted[state.currentCase] = true;
+    saveGame();
+    verdict.innerHTML = "⚖️ 判决：" + c.defendant + " 无罪。\n\n" + c.defender + " 的辩护成立。";
+  } else {
+    verdict.innerHTML = "⚖️ 判决：" + c.defendant + " 有罪。\n\n" + c.defender + " 的辩护失败。";
+  }
+  document.getElementById("choices").innerHTML = "";
+  document.getElementById("evidence-box").style.display = "none";
+  document.getElementById("restart").style.display = "inline-block";
+  document.getElementById("save-status").textContent = "已完成案件：" + Object.keys(state.caseCompleted).length + " / 4";
+}
+
+function clearAllSave() {
+  if (confirm("确定要清除所有进度吗？此操作不可恢复。")) {
+    localStorage.removeItem("binua_court_save");
+    state.caseCompleted = {};
+    goEntry();
+  }
+}
+
+loadSave();
+goEntry();
+</script>
+</body>
+</html>
